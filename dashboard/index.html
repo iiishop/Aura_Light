@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aura Light Dashboard V2.0</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <h1>Aura Light Control Panel</h1>
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span id="statusText">Disconnected</span>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="dashboard-grid">
+
+            <!-- Left Column: Controls -->
+            <div class="column">
+
+                <!-- Connection Panel -->
+                <section class="card connection-card">
+                    <h2>MQTT Connection</h2>
+                    <div class="form-group">
+                        <label>Username: <strong>ucfninn</strong></label>
+                        <input type="hidden" id="username" value="ucfninn">
+                    </div>
+                    <button id="connectBtn" class="btn btn-primary">Connect</button>
+                    <button id="disconnectBtn" class="btn btn-secondary" disabled>Disconnect</button>
+                </section>
+
+                <!-- Status Control -->
+                <section class="card control-card">
+                    <h2>Light Status</h2>
+                    <div class="status-display">
+                        <div class="status-badge" id="lightStatus">OFF</div>
+                    </div>
+                    <div class="button-group">
+                        <button id="turnOnBtn" class="btn btn-success" disabled>Turn ON</button>
+                        <button id="turnOffBtn" class="btn btn-danger" disabled>Turn OFF</button>
+                    </div>
+                </section>
+
+                <!-- Mode Control -->
+                <section class="card mode-card">
+                    <h2>Light Mode</h2>
+                    <div class="mode-display">
+                        <div class="mode-badge" id="currentMode">IDLE</div>
+                    </div>
+                    <div class="mode-buttons">
+                        <button class="mode-btn mode-timer" data-mode="timer" disabled>
+                            <span class="mode-icon"></span>
+                            <span>Timer</span>
+                        </button>
+                        <button class="mode-btn mode-weather" data-mode="weather" disabled>
+                            <span class="mode-icon"></span>
+                            <span>Weather</span>
+                        </button>
+                        <button class="mode-btn mode-idle" data-mode="idle" disabled>
+                            <span class="mode-icon"></span>
+                            <span>Idle</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Middle Column: Info & Visualization -->
+            <div class="column">
+
+                <!-- System Info -->
+                <section class="card info-card">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h2 style="margin: 0;">System Information</h2>
+                        <button id="refreshInfoBtn" class="btn btn-sm" disabled>Refresh INFO</button>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">WiFi SSID:</span>
+                            <span class="info-value" id="infoWifiSSID">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">IP Address:</span>
+                            <span class="info-value" id="infoWifiIP">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Signal (RSSI):</span>
+                            <span class="info-value" id="infoWifiRSSI">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">MAC Address:</span>
+                            <span class="info-value" id="infoWifiMAC">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Pixel Count:</span>
+                            <span class="info-value" id="infoLighterNumber">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Data Pin:</span>
+                            <span class="info-value" id="infoLighterPin">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Version:</span>
+                            <span class="info-value" id="infoSystemVersion">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Uptime:</span>
+                            <span class="info-value" id="infoSystemUptime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Location:</span>
+                            <span class="info-value" id="infoLocationCity">-</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Light Visualization -->
+                <section class="card visualization-card">
+                    <h2>Light Visualization</h2>
+                    <div id="lightVisualization" class="light-visualization">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Right Column: Debug Control -->
+            <div class="column">
+
+                <!-- Debug Control -->
+                <section class="card debug-card">
+                    <h2>DEBUG Mode</h2>
+                    <p class="debug-info">Control individual pixels for testing</p>
+
+                    <div class="form-group">
+                        <label for="debugPixelIndex">Select Pixel:</label>
+                        <select id="debugPixelIndex" disabled>
+                            <option value="0">Pixel 0</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debugColor">Color:</label>
+                        <input type="color" id="debugColor" value="#FF0000" disabled>
+                        <input type="text" id="debugColorHex" value="#FF0000" disabled>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="debugBrightness">Brightness: <span id="brightnessValue">255</span></label>
+                        <input type="range" id="debugBrightness" min="0" max="255" value="255" disabled>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="applyDebugBtn" class="btn btn-primary" disabled>Apply</button>
+                        <button id="clearDebugBtn" class="btn btn-warning" disabled>Clear DEBUG</button>
+                    </div>
+
+                    <div class="debug-status">
+                        <span id="debugStatus">DEBUG Inactive</span>
+                    </div>
+                </section>
+
+                <!-- MQTT Log -->
+                <section class="card log-card">
+                    <h2>MQTT Messages</h2>
+                    <div class="log-controls">
+                        <button id="clearLogBtn" class="btn btn-sm">Clear</button>
+                        <label>
+                            <input type="checkbox" id="autoScrollLog" checked>
+                            Auto-scroll
+                        </label>
+                    </div>
+                    <div id="mqttLog" class="mqtt-log"></div>
+                </section>
+
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="dashboard-footer">
+            <p>Aura Light Dashboard V2.0 | CASA0014 Coursework |
+                <a href="https://github.com/yourusername/aura-light" target="_blank">GitHub</a>
+            </p>
+        </footer>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+    <script type="module" src="js/app.js"></script>
+</body>
+
+</html>
