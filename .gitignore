@@ -1,1 +1,53 @@
+# Visual Studio Code
 .vscode/
+
+# ============================================
+# Arduino Secrets - DO NOT COMMIT!
+# ============================================
+arduino_secrets.h
+
+# Arduino Build Files
+*.hex
+*.elf
+*.o
+*.d
+*.a
+*.bin
+
+# Arduino IDE
+.build/
+build/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*~
+*.tmp
+*.bak
+*.swp
+
+# Python (if using test scripts)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+*.egg-info/
+
+# Node.js (if using Node test scripts)
+node_modules/
+package-lock.json
+yarn.lock
+
+# MQTT test outputs
+mqtt_test_output.txt
