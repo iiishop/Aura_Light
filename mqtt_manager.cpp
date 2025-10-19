@@ -301,20 +301,20 @@ bool MQTTManager::publishMode(const char *mode)
 bool MQTTManager::publishInfo_WiFi_SSID()
 {
     String ssid = WiFi.SSID();
-    return publish(TOPIC_INFO_WIFI_SSID, ssid.c_str());
+    return publish(TOPIC_INFO_WIFI_SSID, ssid.c_str(), true); // retained
 }
 
 bool MQTTManager::publishInfo_WiFi_IP()
 {
     String ip = WiFi.localIP().toString();
-    return publish(TOPIC_INFO_WIFI_IP, ip.c_str());
+    return publish(TOPIC_INFO_WIFI_IP, ip.c_str(), true); // retained
 }
 
 bool MQTTManager::publishInfo_WiFi_RSSI()
 {
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%d dBm", WiFi.RSSI());
-    return publish(TOPIC_INFO_WIFI_RSSI, buffer);
+    return publish(TOPIC_INFO_WIFI_RSSI, buffer, true); // retained
 }
 
 bool MQTTManager::publishInfo_WiFi_MAC()
@@ -324,26 +324,26 @@ bool MQTTManager::publishInfo_WiFi_MAC()
     char buffer[24];
     snprintf(buffer, sizeof(buffer), "%02X:%02X:%02X:%02X:%02X:%02X",
              mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
-    return publish(TOPIC_INFO_WIFI_MAC, buffer);
+    return publish(TOPIC_INFO_WIFI_MAC, buffer, true); // retained
 }
 
 bool MQTTManager::publishInfo_Lighter_Number(int count)
 {
     char buffer[8];
     snprintf(buffer, sizeof(buffer), "%d", count);
-    return publish(TOPIC_INFO_LIGHTER_NUMBER, buffer);
+    return publish(TOPIC_INFO_LIGHTER_NUMBER, buffer, true); // retained
 }
 
 bool MQTTManager::publishInfo_Lighter_Pin(int pin)
 {
     char buffer[8];
     snprintf(buffer, sizeof(buffer), "%d", pin);
-    return publish(TOPIC_INFO_LIGHTER_PIN, buffer);
+    return publish(TOPIC_INFO_LIGHTER_PIN, buffer, true); // retained
 }
 
 bool MQTTManager::publishInfo_System_Version(const char *version)
 {
-    return publish(TOPIC_INFO_SYSTEM_VERSION, version);
+    return publish(TOPIC_INFO_SYSTEM_VERSION, version, true); // retained
 }
 
 bool MQTTManager::publishInfo_System_Uptime()
@@ -354,12 +354,12 @@ bool MQTTManager::publishInfo_System_Uptime()
     unsigned long minutes = (uptime % 3600) / 60;
     unsigned long seconds = uptime % 60;
     snprintf(buffer, sizeof(buffer), "%luh %lum %lus", hours, minutes, seconds);
-    return publish(TOPIC_INFO_SYSTEM_UPTIME, buffer);
+    return publish(TOPIC_INFO_SYSTEM_UPTIME, buffer, true); // retained
 }
 
 bool MQTTManager::publishInfo_Location_City(const char *city)
 {
-    return publish(TOPIC_INFO_LOCATION_CITY, city);
+    return publish(TOPIC_INFO_LOCATION_CITY, city, true); // retained
 }
 
 // V2.0: 批量发布所有INFO信息
