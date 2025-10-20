@@ -103,6 +103,9 @@ public:
     bool publishInfo_System_Uptime();
     bool publishInfo_Location_City(const char *city);
 
+    // Generic INFO publisher
+    bool publishInfo(const char *subTopic, const char *payload, bool retained = true);
+
     // Publish all INFO at once
     void publishAllInfo(int numPixels, int pin, const char *version, const char *city);
 };

@@ -362,6 +362,14 @@ bool MQTTManager::publishInfo_Location_City(const char *city)
     return publish(TOPIC_INFO_LOCATION_CITY, city, true); // retained
 }
 
+// Generic INFO publisher
+bool MQTTManager::publishInfo(const char *subTopic, const char *payload, bool retained)
+{
+    // 构建完整的INFO topic路径: student/CASA0014/{username}/info/{subTopic}
+    String fullTopic = String(TOPIC_BASE) + "/info/" + String(subTopic);
+    return publish(fullTopic.c_str(), payload, retained);
+}
+
 // V2.0: 批量发布所有INFO信息
 void MQTTManager::publishAllInfo(int lighterNumber, int lighterPin, const char *version, const char *city)
 {

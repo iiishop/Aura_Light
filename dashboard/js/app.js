@@ -105,7 +105,14 @@ class AuraLightDashboard {
         // INFO消息
         else if (topic.includes('/info/')) {
             console.log('[App] → INFO message');
-            this.handleInfoMessage(topic, secondLastPart, lastPart, message);
+
+            // 特殊处理天气消息（JSON格式）
+            if (topic.endsWith('/info/weather')) {
+                console.log('[App] → WEATHER INFO message');
+                this.weatherManager.handleWeatherData(message);
+            } else {
+                this.handleInfoMessage(topic, secondLastPart, lastPart, message);
+            }
         }
     }
 
@@ -137,12 +144,11 @@ class AuraLightDashboard {
         console.log('[App] Mapped field name:', fieldName);
 
         ui.updateInfo(fieldName, value);
-        
-        // 如果收到城市信息，更新天气
+
+        // 如果收到城市信息，更新WeatherManager的城市名（仅用于显示）
         if (category === 'location' && field === 'city') {
-            console.log('[App] City detected, updating weather:', value);
+            console.log('[App] City detected:', value);
             this.weatherManager.setCity(value);
-            this.weatherManager.startAutoUpdate();
         }
     }
 

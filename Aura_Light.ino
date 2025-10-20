@@ -2,6 +2,7 @@
 #include "geography.h"
 #include "mqtt_manager.h"
 #include "light_controller.h"
+#include "weather_manager.h"
 
 // ============ CONFIGURATION ============
 // 设置连接的灯珠数量 (1-无限制)
@@ -13,6 +14,7 @@
 // Create instances
 MQTTManager mqtt;
 LightController lightControl;
+WeatherManager weatherManager;
 String systemCity = "London"; // 默认城市，在setup()中更新
 
 // MQTT message callback - forward to light controller
@@ -76,6 +78,10 @@ void setup()
     lightControl.publishState();
   }
 
+  // 6. Initialize Weather Manager
+  Serial.println("\n[System] Initializing weather manager...");
+  weatherManager.begin(&mqtt, systemCity);
+
   Serial.println("\n========================================");
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
@@ -108,6 +114,9 @@ void loop()
 
   // Update light controller (handles breathing effects in IDLE mode)
   lightControl.loop();
+
+  // Update weather manager (auto-fetch every 10 minutes)
+  weatherManager.loop();
 
   // Check for serial commands
   if (Serial.available() > 0)

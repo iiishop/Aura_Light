@@ -8,15 +8,42 @@ String getCurrentCity()
     const char *host = "2025.ip138.com"; // ip138.com 的子域名
     const int httpPort = 80;
     String city = "Suzhou"; // Default fallback city
+    const int maxRetries = 3;
 
     Serial.println("[Geography] Detecting current city via IP138...");
     Serial.print("[Geography] Connecting to ");
     Serial.println(host);
 
-    // Connect to ip138.com
-    if (!client.connect(host, httpPort))
+    // Connect to ip138.com with retry mechanism
+    bool connected = false;
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
     {
-        Serial.println("[Geography] ✗ Connection failed, using default city");
+        Serial.print("[Geography] Connection attempt ");
+        Serial.print(attempt);
+        Serial.print("/");
+        Serial.println(maxRetries);
+
+        if (client.connect(host, httpPort))
+        {
+            connected = true;
+            Serial.println("[Geography] ✓ Connected successfully");
+            break;
+        }
+
+        Serial.print("[Geography] ✗ Attempt ");
+        Serial.print(attempt);
+        Serial.println(" failed");
+
+        if (attempt < maxRetries)
+        {
+            Serial.println("[Geography] Retrying in 2 seconds...");
+            delay(2000);
+        }
+    }
+
+    if (!connected)
+    {
+        Serial.println("[Geography] ✗ All connection attempts failed, using default city");
         return city;
     }
 
