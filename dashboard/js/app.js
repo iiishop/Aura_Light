@@ -6,9 +6,11 @@
 import mqttManager from './mqtt.js';
 import ui from './ui.js';
 import { MQTT_CONFIG } from './config.js';
+import WeatherManager from './weather.js';
 
 class AuraLightDashboard {
     constructor() {
+        this.weatherManager = new WeatherManager();
         this.init();
     }
 
@@ -135,6 +137,13 @@ class AuraLightDashboard {
         console.log('[App] Mapped field name:', fieldName);
 
         ui.updateInfo(fieldName, value);
+        
+        // 如果收到城市信息，更新天气
+        if (category === 'location' && field === 'city') {
+            console.log('[App] City detected, updating weather:', value);
+            this.weatherManager.setCity(value);
+            this.weatherManager.startAutoUpdate();
+        }
     }
 
     /**

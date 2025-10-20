@@ -73,7 +73,46 @@
 
             </div>
 
-            <!-- Middle Column: Info & Visualization -->
+            <!-- Column 2: Weather -->
+            <div class="column">
+                
+                <!-- Weather Visualization -->
+                <section class="card weather-card">
+                    <h2>Weather</h2>
+                    <div class="weather-display">
+                        <div class="weather-icon" id="weatherIcon">
+                            <div class="weather-loading">Loading...</div>
+                        </div>
+                        <div class="weather-temp">
+                            <span class="temp-value" id="tempValue">--</span>
+                            <span class="temp-unit">°C</span>
+                        </div>
+                        <div class="weather-desc" id="weatherDesc">--</div>
+                        <div class="weather-location" id="weatherLocation">--</div>
+                    </div>
+                    <div class="weather-details">
+                        <div class="weather-detail-item">
+                            <div class="detail-label">Humidity</div>
+                            <div class="detail-value" id="humidity">--%</div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="detail-label">Wind</div>
+                            <div class="detail-value" id="windSpeed">-- km/h</div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="detail-label">Visibility</div>
+                            <div class="detail-value" id="visibility">-- km</div>
+                        </div>
+                        <div class="weather-detail-item">
+                            <div class="detail-label">Feels Like</div>
+                            <div class="detail-value" id="feelsLike">--°C</div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Column 3: Info & Visualization -->
             <div class="column">
 
                 <!-- System Info -->
@@ -133,7 +172,7 @@
 
             </div>
 
-            <!-- Right Column: Debug Control -->
+            <!-- Column 4: Debug Control -->
             <div class="column">
 
                 <!-- Debug Control -->
