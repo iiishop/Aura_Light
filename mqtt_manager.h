@@ -79,6 +79,9 @@ public:
     bool publish(const char *topic, const char *payload);
     bool publish(const char *topic, const char *payload, bool retained);
 
+    // Publish binary data (for Luminaire)
+    bool publish(const char *topic, const uint8_t *payload, unsigned int length, bool retained);
+
     // Subscribe to topic
     bool subscribe(const char *topic);
 

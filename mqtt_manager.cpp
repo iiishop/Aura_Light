@@ -228,6 +228,33 @@ bool MQTTManager::publish(const char *topic, const char *payload, bool retained)
     return success;
 }
 
+// Publish binary data (for Luminaire)
+bool MQTTManager::publish(const char *topic, const uint8_t *payload, unsigned int length, bool retained)
+{
+    if (!mqttClient->connected())
+    {
+        Serial.println("[MQTT] ✗ Not connected, cannot publish binary data");
+        return false;
+    }
+
+    bool success = mqttClient->publish(topic, payload, length, retained);
+
+    if (success)
+    {
+        Serial.print("[MQTT] ✓ Published ");
+        Serial.print(length);
+        Serial.print(" bytes to ");
+        Serial.println(topic);
+    }
+    else
+    {
+        Serial.print("[MQTT] ✗ Failed to publish binary data to ");
+        Serial.println(topic);
+    }
+
+    return success;
+}
+
 // Subscribe to topic
 bool MQTTManager::subscribe(const char *topic)
 {

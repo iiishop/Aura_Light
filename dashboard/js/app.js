@@ -95,6 +95,12 @@ class AuraLightDashboard {
             ui.updateMode(message);
         }
 
+        // CONTROLLER消息
+        else if (topic.endsWith('/controller')) {
+            console.log('[App] → CONTROLLER message');
+            ui.updateController(message);
+        }
+
         // DEBUG消息
         else if (topic.includes('/debug/')) {
             console.log('[App] → DEBUG message');
@@ -149,6 +155,13 @@ class AuraLightDashboard {
      */
     handleInfoMessage(fullTopic, category, field, value) {
         console.log('[App] INFO - category:', category, 'field:', field, 'value:', value);
+
+        // 特殊处理 controller 消息
+        if (category === 'info' && field === 'controller') {
+            console.log('[App] Controller update from Arduino:', value);
+            ui.updateController(value);
+            return;
+        }
 
         // 构建字段名: info + Category + Field (驼峰命名)
         // wifi/ssid → infoWifiSsid → infoWifiSSID (特殊处理)
@@ -218,6 +231,12 @@ class AuraLightDashboard {
                 this.publishMode(mode);
             });
         });
+
+        // 控制器切换回调
+        ui.onControllerSwitch = (controller) => {
+            console.log('[App] Controller switch requested:', controller);
+            this.publishController(controller);
+        };
 
         // 应用DEBUG按钮
         ui.elements.applyDebugBtn.addEventListener('click', () => {
@@ -311,6 +330,17 @@ class AuraLightDashboard {
             ui.addLog('sent', 'mode', mode);
             // 立即更新UI，不等待retained消息
             ui.updateMode(mode);
+        }
+    }
+
+    /**
+     * 发布Controller切换消息
+     */
+    publishController(controller) {
+        if (mqttManager.publish(MQTT_CONFIG.topics.controller, controller)) {
+            ui.addLog('sent', 'controller', controller);
+            // 立即更新UI，不等待retained消息
+            ui.updateController(controller);
         }
     }
 

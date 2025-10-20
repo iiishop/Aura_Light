@@ -2,25 +2,74 @@
 #include "geography.h"
 #include "mqtt_manager.h"
 #include "light_controller.h"
+#include "luminaire_controller.h"
 #include "weather_manager.h"
 
 // ============ CONFIGURATION ============
 // 设置连接的灯珠数量 (1-无限制)
 // Set the number of NeoPixel LEDs connected (1-unlimited)
 #define NUM_PIXELS 8           // ← 修改这里来改变灯珠数量
-#define SYSTEM_VERSION "2.0.0" // V2.0版本
+#define SYSTEM_VERSION "2.1.0" // V2.1版本 - 添加Luminaire支持
+#define LUMINAIRE_ID "16"      // Luminaire light ID
 // =======================================
+
+// Light mode selection
+enum ControllerMode
+{
+  MODE_LOCAL,    // 控制本地实体灯 (MKR1010上的NeoPixel)
+  MODE_LUMINAIRE // 控制外接Luminaire (72 LEDs)
+};
 
 // Create instances
 MQTTManager mqtt;
 LightController lightControl;
+LuminaireController luminaireControl;
 WeatherManager weatherManager;
-String systemCity = "London"; // 默认城市，在setup()中更新
+String systemCity = "London";                  // 默认城市，在setup()中更新
+ControllerMode currentController = MODE_LOCAL; // 默认控制本地灯
 
-// MQTT message callback - forward to light controller
+// MQTT message callback - forward to appropriate controller
 void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
 {
-  lightControl.handleMQTTMessage(topic, payload, length);
+  String topicStr = String(topic);
+
+  // Check if this is a controller switch command
+  if (topicStr.endsWith("/controller"))
+  {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    String msg = String(message);
+    msg.toLowerCase();
+
+    if (msg == "local")
+    {
+      currentController = MODE_LOCAL;
+      lightControl.setActive(true);
+      luminaireControl.setActive(false);
+      mqtt.publishInfo("controller", "local", true); // Publish retained
+      Serial.println("[System] Switched to LOCAL controller");
+    }
+    else if (msg == "luminaire")
+    {
+      currentController = MODE_LUMINAIRE;
+      lightControl.setActive(false);
+      luminaireControl.setActive(true);
+      mqtt.publishInfo("controller", "luminaire", true); // Publish retained
+      Serial.println("[System] Switched to LUMINAIRE controller");
+    }
+    return;
+  }
+
+  // Forward to active controller
+  if (currentController == MODE_LOCAL)
+  {
+    lightControl.handleMQTTMessage(topic, payload, length);
+  }
+  else if (currentController == MODE_LUMINAIRE)
+  {
+    luminaireControl.handleMQTTMessage(topic, payload, length);
+  }
 }
 
 void setup()
@@ -36,7 +85,7 @@ void setup()
 
   Serial.println("\n\n");
   Serial.println("========================================");
-  Serial.println("   Aura Light System V2.0 Starting... ");
+  Serial.println("   Aura Light System V2.1 Starting... ");
   Serial.println("========================================\n");
 
   // 1. Connect to WiFi
@@ -56,19 +105,31 @@ void setup()
   if (mqtt.connect())
   {
     Serial.println("[System] ✓ MQTT connected\n");
+
+    // Subscribe to controller switch topic
+    String controllerTopic = String(TOPIC_BASE) + "/controller";
+    mqtt.subscribe(controllerTopic.c_str());
+    Serial.print("[MQTT] ✓ Subscribed to: ");
+    Serial.println(controllerTopic);
   }
   else
   {
     Serial.println("[System] ✗ MQTT connection failed\n");
   }
 
-  // 4. Initialize Light Controller
-  Serial.print("[System] Initializing with ");
+  // 4. Initialize Local Light Controller
+  Serial.print("[System] Initializing local controller with ");
   Serial.print(NUM_PIXELS);
   Serial.println(" NeoPixel(s)...");
   lightControl.begin(&mqtt, NUM_PIXELS);
+  lightControl.setActive(true); // Default to local controller
 
-  // 5. V2.0: Publish all INFO topics
+  // 5. Initialize Luminaire Controller
+  Serial.println("[System] Initializing Luminaire controller...");
+  luminaireControl.begin(&mqtt, LUMINAIRE_ID);
+  luminaireControl.setActive(false); // Not active by default
+
+  // 6. V2.1: Publish all INFO topics
   if (mqtt.isConnected())
   {
     Serial.println("\n[System] Publishing system information...");
@@ -76,9 +137,12 @@ void setup()
 
     // Publish initial state
     lightControl.publishState();
+
+    // Publish controller mode
+    mqtt.publishInfo("controller", "local", true);
   }
 
-  // 6. Initialize Weather Manager
+  // 7. Initialize Weather Manager
   Serial.println("\n[System] Initializing weather manager...");
   weatherManager.begin(&mqtt, systemCity);
 
@@ -86,8 +150,11 @@ void setup()
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
 
-  // V2.0: Print control instructions
-  Serial.println("MQTT Control Commands (V2.0):");
+  // V2.1: Print control instructions
+  Serial.println("MQTT Control Commands (V2.1):");
+  Serial.println("  CONTROLLER:");
+  Serial.println("    .../controller: local / luminaire");
+  Serial.println();
   Serial.println("  STATUS:");
   Serial.println("    .../status: on / off");
   Serial.println();

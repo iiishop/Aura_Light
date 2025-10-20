@@ -16,6 +16,7 @@ export const MQTT_CONFIG = {
     topics: {
         status: '/status',
         mode: '/mode',
+        controller: '/controller',
         debugColor: '/debug/color',
         debugBrightness: '/debug/brightness',
         debugIndex: '/debug/index',
@@ -43,6 +44,7 @@ export const MQTT_CONFIG = {
         return [
             `${base}/status`,
             `${base}/mode`,
+            `${base}/controller`,
             `${base}/debug/#`,
             `${base}/info/#`
         ];

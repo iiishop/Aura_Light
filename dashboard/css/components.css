@@ -70,6 +70,69 @@
     gap: 10px;
 }
 
+/* Controller Selection Styles */
+.controller-display {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.controller-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 14px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.controller-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.controller-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.controller-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: #667eea;
+}
+
+.controller-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.controller-btn.active {
+    border-width: 3px;
+    border-color: #667eea;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    box-shadow: var(--shadow-md);
+}
+
+/* Mode Selection Styles */
+.mode-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .mode-btn {
     display: flex;
     flex-direction: column;
@@ -243,6 +306,29 @@
 
 .pixel.debug-mode::after {
     content: attr(data-index) " 🔧";
+}
+
+/* Luminaire Grid Display (12x6 = 72 LEDs) */
+.light-visualization.luminaire-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 8px;
+    padding: 16px;
+    min-height: 300px;
+}
+
+.light-visualization.luminaire-grid .pixel {
+    width: 100%;
+    height: 100%;
+    min-width: 28px;
+    min-height: 28px;
+    aspect-ratio: 1;
+}
+
+.light-visualization.luminaire-grid .pixel::after {
+    font-size: 9px;
+    bottom: -18px;
 }
 
 /* Debug Status */

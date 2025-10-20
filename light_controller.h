@@ -81,6 +81,9 @@ public:
     // Set number of pixels (supports hot-swap)
     void setNumPixels(int count);
 
+    // Activate/Deactivate controller
+    void setActive(bool active);
+
     // Main loop - call in Arduino loop()
     void loop();
 

@@ -10,7 +10,8 @@ class UIManager {
             connected: false,
             lightOn: false,
             currentMode: 'idle',
-            pixelCount: 1,
+            currentController: 'local',
+            pixelCount: 8,
             debugActive: false
         };
     }
@@ -35,6 +36,10 @@ class UIManager {
         // 模式控制
         this.elements.currentMode = document.getElementById('currentMode');
         this.elements.modeButtons = document.querySelectorAll('.mode-btn');
+
+        // 控制器切换
+        this.elements.currentController = document.getElementById('currentController');
+        this.elements.controllerButtons = document.querySelectorAll('.controller-btn');
 
         // INFO显示
         this.elements.refreshInfoBtn = document.getElementById('refreshInfoBtn');
@@ -98,6 +103,19 @@ class UIManager {
         this.elements.clearLogBtn.addEventListener('click', () => {
             this.clearLog();
         });
+
+        // 控制器切换按钮
+        this.elements.controllerButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (!btn.disabled) {
+                    const controller = btn.dataset.controller;
+                    // 这个回调会在 app.js 中设置
+                    if (this.onControllerSwitch) {
+                        this.onControllerSwitch(controller);
+                    }
+                }
+            });
+        });
     }
 
     /**
@@ -118,6 +136,7 @@ class UIManager {
             this.elements.turnOnBtn.disabled = false;
             this.elements.turnOffBtn.disabled = false;
             this.elements.modeButtons.forEach(btn => btn.disabled = false);
+            this.elements.controllerButtons.forEach(btn => btn.disabled = false);
             this.elements.debugPixelIndex.disabled = false;
             this.elements.debugColor.disabled = false;
             this.elements.debugColorHex.disabled = false;
@@ -137,6 +156,7 @@ class UIManager {
             this.elements.turnOnBtn.disabled = true;
             this.elements.turnOffBtn.disabled = true;
             this.elements.modeButtons.forEach(btn => btn.disabled = true);
+            this.elements.controllerButtons.forEach(btn => btn.disabled = true);
             this.elements.debugPixelIndex.disabled = true;
             this.elements.debugColor.disabled = true;
             this.elements.debugColorHex.disabled = true;
@@ -198,6 +218,39 @@ class UIManager {
     }
 
     /**
+     * 更新控制器显示
+     */
+    updateController(controller) {
+        console.log('[UI] updateController called with:', controller);
+
+        this.state.currentController = controller.toLowerCase();
+
+        // 更新徽章
+        this.elements.currentController.textContent = controller.toUpperCase();
+
+        // 更新按钮状态
+        this.elements.controllerButtons.forEach(btn => {
+            if (btn.dataset.controller === this.state.currentController) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        // 更新像素数量
+        if (this.state.currentController === 'luminaire') {
+            this.state.pixelCount = 72; // Luminaire has 72 LEDs
+        } else {
+            // 从INFO中读取本地灯数量，或使用默认值
+            const localCount = this.elements.infoLighterNumber?.textContent;
+            this.state.pixelCount = parseInt(localCount) || 8;
+        }
+
+        this.updateVisualization();
+        console.log('[UI] ✓ Controller updated to:', controller);
+    }
+
+    /**
      * 更新INFO信息
      * @param {string} field - 字段名，已包含info前缀，如 "infoWifiSSID"
      * @param {string} value - 字段值
@@ -248,6 +301,13 @@ class UIManager {
 
         // 设置像素数量属性，用于响应式布局
         this.elements.lightVisualization.setAttribute('data-pixel-count', this.state.pixelCount);
+
+        // 根据控制器类型设置网格布局
+        if (this.state.currentController === 'luminaire') {
+            this.elements.lightVisualization.classList.add('luminaire-grid');
+        } else {
+            this.elements.lightVisualization.classList.remove('luminaire-grid');
+        }
 
         for (let i = 0; i < this.state.pixelCount; i++) {
             const pixel = document.createElement('div');

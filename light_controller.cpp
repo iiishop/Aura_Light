@@ -77,6 +77,24 @@ void LightController::begin(MQTTManager *mqttManager, int pixelCount)
     Serial.println(NEOPIXEL_PIN);
 }
 
+// Activate/Deactivate controller
+void LightController::setActive(bool active)
+{
+    if (!active)
+    {
+        // Turn off all LEDs when deactivating
+        strip->clear();
+        strip->show();
+        Serial.println("[LightController] Controller deactivated");
+    }
+    else
+    {
+        // Restore state when activating
+        updateLEDs();
+        Serial.println("[LightController] Controller activated");
+    }
+}
+
 // Set number of pixels (supports hot-swap)
 void LightController::setNumPixels(int count)
 {
