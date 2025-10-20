@@ -150,14 +150,20 @@ class UIManager {
      * 更新灯光状态
      */
     updateLightStatus(status) {
+        console.log('[UI] updateLightStatus called with:', status);
+        console.log('[UI] Status type:', typeof status);
+
         this.state.lightOn = (status === 'on');
+        console.log('[UI] Light state set to:', this.state.lightOn);
 
         if (this.state.lightOn) {
             this.elements.lightStatus.textContent = 'ON';
             this.elements.lightStatus.classList.add('on');
+            console.log('[UI] ✓ Light status updated to ON');
         } else {
             this.elements.lightStatus.textContent = 'OFF';
             this.elements.lightStatus.classList.remove('on');
+            console.log('[UI] ✓ Light status updated to OFF');
         }
 
         this.updateVisualization();
@@ -167,16 +173,22 @@ class UIManager {
      * 更新模式显示
      */
     updateMode(mode) {
+        console.log('[UI] updateMode called with:', mode);
+        console.log('[UI] Mode type:', typeof mode);
+
         this.state.currentMode = mode.toLowerCase();
+        console.log('[UI] Current mode set to:', this.state.currentMode);
 
         // 更新徽章
         this.elements.currentMode.textContent = mode.toUpperCase();
         this.elements.currentMode.className = 'mode-badge ' + this.state.currentMode;
+        console.log('[UI] ✓ Mode badge updated to:', mode.toUpperCase());
 
         // 更新按钮状态
         this.elements.modeButtons.forEach(btn => {
             if (btn.dataset.mode === this.state.currentMode) {
                 btn.classList.add('active');
+                console.log('[UI] ✓ Mode button activated:', btn.dataset.mode);
             } else {
                 btn.classList.remove('active');
             }

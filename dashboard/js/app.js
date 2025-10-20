@@ -256,6 +256,8 @@ class AuraLightDashboard {
     publishStatus(status) {
         if (mqttManager.publish(MQTT_CONFIG.topics.status, status)) {
             ui.addLog('sent', 'status', status);
+            // 立即更新UI，不等待retained消息
+            ui.updateLightStatus(status);
         }
     }
 
@@ -265,6 +267,8 @@ class AuraLightDashboard {
     publishMode(mode) {
         if (mqttManager.publish(MQTT_CONFIG.topics.mode, mode)) {
             ui.addLog('sent', 'mode', mode);
+            // 立即更新UI，不等待retained消息
+            ui.updateMode(mode);
         }
     }
 

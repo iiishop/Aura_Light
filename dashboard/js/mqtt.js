@@ -27,17 +27,7 @@ class MQTTManager {
 
             // 使用 mqtt:// 协议（不是 ws://）
             const mqttUrl = `mqtt://${MQTT_CONFIG.broker}:${MQTT_CONFIG.port}`;
-
-            console.log('=== MQTT Connection Debug ===');
-            console.log('[MQTT] URL:', mqttUrl);
-            console.log('[MQTT] Broker:', MQTT_CONFIG.broker);
-            console.log('[MQTT] Port:', MQTT_CONFIG.port);
-            console.log('[MQTT] Auth Username:', MQTT_CONFIG.username);
-            console.log('[MQTT] Auth Password:', MQTT_CONFIG.password ? '***' + MQTT_CONFIG.password.slice(-5) : 'none');
-            console.log('[MQTT] User:', username);
-            console.log('[MQTT] Client ID:', `dashboard_${username}_${Date.now()}`);
-            console.log('[MQTT] MQTT.js version:', typeof mqtt !== 'undefined' ? 'loaded' : 'NOT LOADED');
-            console.log('============================');
+            console.log(`[MQTT] Connecting to: ${mqttUrl} as ${username}...`);
 
             // 创建MQTT客户端
             try {
@@ -52,10 +42,7 @@ class MQTTManager {
                     protocolVersion: 4  // MQTT 3.1.1
                 };
 
-                console.log('[MQTT] Connection options:', JSON.stringify({ ...options, password: '***' }, null, 2));
-
                 this.client = mqtt.connect(mqttUrl, options);
-                console.log('[MQTT] Client created, waiting for events...');
             } catch (error) {
                 console.error('[MQTT] !!! Connection creation failed !!!');
                 console.error('[MQTT] Error type:', error.constructor.name);
@@ -67,9 +54,7 @@ class MQTTManager {
 
             // 连接成功
             this.client.on('connect', (connack) => {
-                console.log('[MQTT] ✓✓✓ Connected successfully! ✓✓✓');
-                console.log('[MQTT] Session present:', connack.sessionPresent);
-                console.log('[MQTT] Return code:', connack.returnCode);
+                console.log('[MQTT] ✓ Connected successfully!');
                 this.connected = true;
 
                 // 订阅所有相关topic
@@ -94,11 +79,7 @@ class MQTTManager {
 
             // 连接错误
             this.client.on('error', (error) => {
-                console.error('[MQTT] !!! ERROR EVENT !!!');
-                console.error('[MQTT] Error type:', error.constructor.name);
-                console.error('[MQTT] Error message:', error.message);
-                console.error('[MQTT] Error code:', error.code);
-                console.error('[MQTT] Full error:', error);
+                console.error('[MQTT] Connection error:', error.message);
                 if (this.callbacks.onError) {
                     this.callbacks.onError(error);
                 }
@@ -107,8 +88,7 @@ class MQTTManager {
 
             // 断开连接
             this.client.on('close', () => {
-                console.log('[MQTT] ✗✗✗ Connection CLOSED ✗✗✗');
-                console.log('[MQTT] Was connected:', this.connected);
+                console.log('[MQTT] ✗ Connection closed');
                 this.connected = false;
                 if (this.callbacks.onDisconnect) {
                     this.callbacks.onDisconnect();
@@ -117,21 +97,12 @@ class MQTTManager {
 
             // 离线事件
             this.client.on('offline', () => {
-                console.log('[MQTT] ⚠️ Client is OFFLINE');
+                console.log('[MQTT] ⚠️ Client offline');
             });
 
             // 重连事件
             this.client.on('reconnect', () => {
-                console.log('[MQTT] 🔄 Attempting to RECONNECT...');
-            });
-
-            // 数据包接收
-            this.client.on('packetsend', (packet) => {
-                console.log('[MQTT] → Packet sent:', packet.cmd, packet);
-            });
-
-            this.client.on('packetreceive', (packet) => {
-                console.log('[MQTT] ← Packet received:', packet.cmd, packet);
+                console.log('[MQTT] 🔄 Reconnecting...');
             });
         });
     }
@@ -183,18 +154,18 @@ class MQTTManager {
     /**
      * 发布消息
      */
-    publish(topicSuffix, message) {
+    publish(topicSuffix, message, retained = true) {
         if (!this.connected) {
             console.error('[MQTT] Not connected');
             return false;
         }
 
         const fullTopic = MQTT_CONFIG.getFullTopic(this.username, topicSuffix);
-        this.client.publish(fullTopic, message.toString(), (err) => {
+        this.client.publish(fullTopic, message.toString(), { retain: retained }, (err) => {
             if (err) {
                 console.error(`[MQTT] Publish failed: ${fullTopic}`, err);
             } else {
-                console.log(`[MQTT] Published: ${fullTopic} = ${message}`);
+                console.log(`[MQTT] Published: ${fullTopic} = ${message} (retained=${retained})`);
             }
         });
 
