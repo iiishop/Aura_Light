@@ -141,9 +141,6 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
     Serial.print("]: ");
     Serial.println(message);
 
-    // Suppress MQTT feedback during message processing to prevent loops
-    suppressMqttFeedback = true;
-
     // Parse topic
     String topicStr = String(topic);
 
@@ -152,18 +149,50 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
     {
         if (message == "on" || message == "ON" || message == "1")
         {
-            turnOn();
+            // 只更新状态，不发布 (Dashboard已经知道了)
+            Serial.println("[LightController] Setting state to ON");
+            state = LIGHT_ON;
+            updateLEDs();
         }
         else if (message == "off" || message == "OFF" || message == "0")
         {
-            turnOff();
+            // 只更新状态，不发布 (Dashboard已经知道了)
+            Serial.println("[LightController] Setting state to OFF");
+            state = LIGHT_OFF;
+            updateLEDs();
         }
     }
 
     // V2.0: MODE - timer/weather/idle
     else if (topicStr.endsWith("/mode"))
     {
-        setMode(message);
+        // 只更新模式，不发布 (Dashboard已经知道了)
+        message.toLowerCase();
+        if (message == "timer")
+        {
+            mode = MODE_TIMER;
+        }
+        else if (message == "weather")
+        {
+            mode = MODE_WEATHER;
+        }
+        else if (message == "idle")
+        {
+            mode = MODE_IDLE;
+            breathBrightness = 0;
+            breathDirection = 1;
+            lastBreathUpdate = millis();
+        }
+
+        const char *modeNames[] = {"timer", "weather", "idle"};
+        Serial.print("[LightController] Setting mode to: ");
+        Serial.println(modeNames[mode]);
+
+        applyModeColor();
+        if (state == LIGHT_ON)
+        {
+            updateLEDs();
+        }
     }
 
     // V2.0: DEBUG - debug/color
@@ -224,9 +253,6 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
             debugSetIndex(message.toInt());
         }
     }
-
-    // Re-enable MQTT feedback after message processing
-    suppressMqttFeedback = false;
 }
 
 // Turn on light
@@ -299,6 +325,12 @@ void LightController::setMode(String modeName)
     if (state == LIGHT_ON)
     {
         updateLEDs();
+    }
+
+    // 发布模式变化 (只在非MQTT消息触发时)
+    if (mqtt && !suppressMqttFeedback)
+    {
+        mqtt->publishMode(modeNames[mode]);
     }
 }
 

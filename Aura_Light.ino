@@ -13,6 +13,7 @@
 // Create instances
 MQTTManager mqtt;
 LightController lightControl;
+String systemCity = "London"; // 默认城市，在setup()中更新
 
 // MQTT message callback - forward to light controller
 void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
@@ -40,10 +41,10 @@ void setup()
   setupWiFi();
 
   // 2. Get current location
-  String city = getCurrentCity();
+  systemCity = getCurrentCity();
   Serial.println("========================================");
   Serial.print("[System] Current city: ");
-  Serial.println(city);
+  Serial.println(systemCity);
   Serial.println("========================================\n");
 
   // 3. Initialize MQTT
@@ -69,7 +70,7 @@ void setup()
   if (mqtt.isConnected())
   {
     Serial.println("\n[System] Publishing system information...");
-    mqtt.publishAllInfo(NUM_PIXELS, NEOPIXEL_PIN, SYSTEM_VERSION, city.c_str());
+    mqtt.publishAllInfo(NUM_PIXELS, NEOPIXEL_PIN, SYSTEM_VERSION, systemCity.c_str());
 
     // Publish initial state
     lightControl.publishState();
@@ -107,6 +108,34 @@ void loop()
 
   // Update light controller (handles breathing effects in IDLE mode)
   lightControl.loop();
+
+  // Check for serial commands
+  if (Serial.available() > 0)
+  {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+
+    if (command == "republish" || command == "r")
+    {
+      Serial.println("\n[System] Re-publishing all states...");
+      lightControl.publishState(); // 重新发布 status 和 mode
+      Serial.println("[System] ✓ States re-published!");
+    }
+    else if (command == "info" || command == "i")
+    {
+      Serial.println("\n[System] Re-publishing all INFO...");
+      mqtt.publishAllInfo(lightControl.getNumPixels(), NEOPIXEL_PIN, SYSTEM_VERSION, systemCity.c_str());
+      Serial.println("[System] ✓ INFO re-published!");
+    }
+    else if (command == "help" || command == "h")
+    {
+      Serial.println("\n=== Serial Commands ===");
+      Serial.println("  r / republish  - Re-publish status and mode");
+      Serial.println("  i / info       - Re-publish all INFO");
+      Serial.println("  h / help       - Show this help");
+      Serial.println("=======================\n");
+    }
+  }
 
   // V2.0: Heartbeat - publish uptime every 5 minutes
   static unsigned long lastHeartbeat = 0;

@@ -294,7 +294,7 @@ bool MQTTManager::publishStatus(const char *status)
 // Helper: Publish mode
 bool MQTTManager::publishMode(const char *mode)
 {
-    return publish(TOPIC_MODE, mode);
+    return publish(TOPIC_MODE, mode, true); // Retained
 }
 
 // V2.0: INFO publishers
