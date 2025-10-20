@@ -109,6 +109,15 @@ public:
     bool isOn() { return state == LIGHT_ON; }
     LightMode getMode() { return mode; }
     int getNumPixels() { return numPixels; }
+    const char *getModeString()
+    {
+        const char *modeNames[] = {"timer", "weather", "idle"};
+        return modeNames[mode];
+    }
+    const char *getStateString()
+    {
+        return (state == LIGHT_ON) ? "on" : "off";
+    }
 };
 
 #endif // LIGHT_CONTROLLER_H

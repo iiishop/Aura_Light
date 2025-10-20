@@ -3,7 +3,9 @@
 
 #include <WiFiNINA.h>
 
-// Function declaration
+// Function declarations
 void setupWiFi();
+bool checkWiFiConnection();
+void reconnectWiFi();
 
 #endif

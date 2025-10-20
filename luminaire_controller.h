@@ -59,6 +59,19 @@ public:
 
     // Get number of LEDs
     int getNumLEDs() const { return LUMINAIRE_NUM_LEDS; }
+
+    // Getters
+    bool isOn() const { return state == LUMI_ON; }
+    LuminaireMode getMode() const { return mode; }
+    const char *getModeString() const
+    {
+        const char *modeNames[] = {"timer", "weather", "idle"};
+        return modeNames[mode];
+    }
+    const char *getStateString() const
+    {
+        return (state == LUMI_ON) ? "on" : "off";
+    }
 };
 
 #endif

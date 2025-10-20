@@ -302,11 +302,24 @@ class UIManager {
         // 设置像素数量属性，用于响应式布局
         this.elements.lightVisualization.setAttribute('data-pixel-count', this.state.pixelCount);
 
-        // 根据控制器类型设置网格布局
+        // 如果是Luminaire控制器，显示外部网页
         if (this.state.currentController === 'luminaire') {
-            this.elements.lightVisualization.classList.add('luminaire-grid');
+            this.elements.lightVisualization.classList.add('luminaire-iframe');
+            this.elements.lightVisualization.classList.remove('luminaire-grid');
+
+            const iframe = document.createElement('iframe');
+            iframe.src = 'https://www.iot.io/projects/lumi/';
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            iframe.setAttribute('allowfullscreen', '');
+
+            this.elements.lightVisualization.appendChild(iframe);
+            return; // 不再创建像素格子
         } else {
             this.elements.lightVisualization.classList.remove('luminaire-grid');
+            this.elements.lightVisualization.classList.remove('luminaire-iframe');
         }
 
         for (let i = 0; i < this.state.pixelCount; i++) {

@@ -331,6 +331,18 @@
     bottom: -18px;
 }
 
+/* Luminaire iframe Display */
+.light-visualization.luminaire-iframe {
+    min-height: 600px;
+    height: 600px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.light-visualization.luminaire-iframe iframe {
+    display: block;
+}
+
 /* Debug Status */
 .debug-status {
     margin-top: 16px;

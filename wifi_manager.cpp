@@ -260,3 +260,133 @@ void setupWiFi()
         Serial.println("========================================\n");
     }
 }
+
+/**
+ * 检查WiFi连接状态
+ * @return true if connected, false otherwise
+ */
+bool checkWiFiConnection()
+{
+    return WiFi.status() == WL_CONNECTED;
+}
+
+/**
+ * WiFi自动重连
+ * 尝试重新连接到之前的网络或其他可用网络
+ */
+void reconnectWiFi()
+{
+    Serial.println("\n========================================");
+    Serial.println("[WiFi] Connection lost! Attempting to reconnect...");
+    Serial.println("========================================");
+
+    // Disconnect first
+    WiFi.disconnect();
+    delay(1000);
+
+    // Scan for available networks
+    Serial.println("[WiFi] Scanning for available networks...");
+    int numNetworks = WiFi.scanNetworks();
+
+    if (numNetworks == 0)
+    {
+        Serial.println("[WiFi] ✗ No networks found in scan!");
+        return;
+    }
+
+    Serial.print("[WiFi] Found ");
+    Serial.print(numNetworks);
+    Serial.println(" networks");
+
+    // Match with configured networks
+    struct MatchedNetwork
+    {
+        int configIndex;
+        int rssi;
+    };
+
+    MatchedNetwork matchedNetworks[WIFI_NETWORK_COUNT];
+    int matchCount = 0;
+
+    for (int i = 0; i < WIFI_NETWORK_COUNT; i++)
+    {
+        for (int j = 0; j < numNetworks; j++)
+        {
+            String scannedSSID = WiFi.SSID(j);
+            String configSSID = String(WIFI_NETWORKS[i].ssid);
+
+            scannedSSID.trim();
+            configSSID.trim();
+
+            if (scannedSSID.equals(configSSID))
+            {
+                matchedNetworks[matchCount].configIndex = i;
+                matchedNetworks[matchCount].rssi = WiFi.RSSI(j);
+                matchCount++;
+
+                Serial.print("[WiFi] ✓ Found: ");
+                Serial.print(WIFI_NETWORKS[i].ssid);
+                Serial.print(" (");
+                Serial.print(WiFi.RSSI(j));
+                Serial.println(" dBm)");
+                break;
+            }
+        }
+    }
+
+    if (matchCount == 0)
+    {
+        Serial.println("[WiFi] ✗ No configured networks available!");
+        return;
+    }
+
+    // Sort by signal strength
+    for (int i = 0; i < matchCount - 1; i++)
+    {
+        for (int j = i + 1; j < matchCount; j++)
+        {
+            if (matchedNetworks[j].rssi > matchedNetworks[i].rssi)
+            {
+                MatchedNetwork temp = matchedNetworks[i];
+                matchedNetworks[i] = matchedNetworks[j];
+                matchedNetworks[j] = temp;
+            }
+        }
+    }
+
+    // Try to connect to strongest network
+    int configIdx = matchedNetworks[0].configIndex;
+    const char *ssid = WIFI_NETWORKS[configIdx].ssid;
+    const char *pass = WIFI_NETWORKS[configIdx].password;
+
+    Serial.print("[WiFi] Reconnecting to: ");
+    Serial.print(ssid);
+    Serial.print(" (");
+    Serial.print(matchedNetworks[0].rssi);
+    Serial.println(" dBm)");
+
+    int status = WiFi.begin(ssid, pass);
+
+    // Wait up to 10 seconds
+    for (int i = 0; i < 10; i++)
+    {
+        delay(1000);
+        Serial.print(".");
+        if (WiFi.status() == WL_CONNECTED)
+        {
+            Serial.println();
+            Serial.println("[WiFi] ✓ Reconnection successful!");
+            Serial.print("[WiFi] IP Address: ");
+            Serial.println(WiFi.localIP());
+            Serial.print("[WiFi] Signal: ");
+            Serial.print(WiFi.RSSI());
+            Serial.println(" dBm");
+            Serial.println("========================================\n");
+            return;
+        }
+    }
+
+    Serial.println();
+    Serial.println("[WiFi] ✗ Reconnection failed!");
+    Serial.println("========================================\n");
+}

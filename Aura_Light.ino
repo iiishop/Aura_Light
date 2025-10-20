@@ -47,16 +47,48 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       currentController = MODE_LOCAL;
       lightControl.setActive(true);
       luminaireControl.setActive(false);
-      mqtt.publishInfo("controller", "local", true); // Publish retained
+
+      // Publish controller change
+      mqtt.publishInfo("controller", "local", true);
+
+      // Sync current state and mode to local controller
+      const char *currentState = lightControl.getStateString();
+      const char *currentMode = lightControl.getModeString();
+      mqtt.publish("status", currentState, true);
+      mqtt.publish("mode", currentMode, true);
+
+      // Publish pixel count for DEBUG
+      mqtt.publishInfo("lighter/number", String(lightControl.getNumPixels()).c_str(), true);
+
       Serial.println("[System] Switched to LOCAL controller");
+      Serial.print("[System] State: ");
+      Serial.print(currentState);
+      Serial.print(", Mode: ");
+      Serial.println(currentMode);
     }
     else if (msg == "luminaire")
     {
       currentController = MODE_LUMINAIRE;
       lightControl.setActive(false);
       luminaireControl.setActive(true);
-      mqtt.publishInfo("controller", "luminaire", true); // Publish retained
+
+      // Publish controller change
+      mqtt.publishInfo("controller", "luminaire", true);
+
+      // Sync current state and mode to luminaire controller
+      const char *currentState = luminaireControl.getStateString();
+      const char *currentMode = luminaireControl.getModeString();
+      mqtt.publish("status", currentState, true);
+      mqtt.publish("mode", currentMode, true);
+
+      // Publish pixel count for DEBUG
+      mqtt.publishInfo("lighter/number", String(luminaireControl.getNumLEDs()).c_str(), true);
+
       Serial.println("[System] Switched to LUMINAIRE controller");
+      Serial.print("[System] State: ");
+      Serial.print(currentState);
+      Serial.print(", Mode: ");
+      Serial.println(currentMode);
     }
     return;
   }
@@ -176,6 +208,32 @@ void setup()
 
 void loop()
 {
+  // Check WiFi connection status (every 30 seconds)
+  static unsigned long lastWiFiCheck = 0;
+  if (millis() - lastWiFiCheck > 30000) // 30 seconds
+  {
+    if (!checkWiFiConnection())
+    {
+      Serial.println("\n[System] ✗ WiFi connection lost!");
+      reconnectWiFi();
+
+      // If WiFi reconnected, also reconnect MQTT
+      if (checkWiFiConnection() && !mqtt.isConnected())
+      {
+        Serial.println("[System] Reconnecting to MQTT...");
+        if (mqtt.reconnect())
+        {
+          Serial.println("[System] ✓ MQTT reconnected!");
+          // Re-publish system info
+          mqtt.publishAllInfo(lightControl.getNumPixels(), NEOPIXEL_PIN, SYSTEM_VERSION, systemCity.c_str());
+          lightControl.publishState();
+          mqtt.publishInfo("controller", currentController == MODE_LOCAL ? "local" : "luminaire", true);
+        }
+      }
+    }
+    lastWiFiCheck = millis();
+  }
+
   // Maintain MQTT connection
   mqtt.loop();
 
