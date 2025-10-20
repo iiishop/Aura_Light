@@ -100,6 +100,33 @@ class AuraLightDashboard {
             console.log('[App] → DEBUG message');
             // DEBUG消息表示DEBUG模式激活
             ui.updateDebugStatus(true);
+
+            // 解析DEBUG消息并更新可视化
+            if (topic.endsWith('/debug/color')) {
+                // 格式: "0:#FF0000" (像素索引:颜色)
+                const match = message.match(/^(\d+):#([0-9A-Fa-f]{6})$/);
+                if (match) {
+                    const pixelIndex = parseInt(match[1]);
+                    const color = '#' + match[2].toUpperCase();
+                    console.log('[App] DEBUG color update - pixel:', pixelIndex, 'color:', color);
+                    ui.updatePixelColor(pixelIndex, color);
+                }
+            } else if (topic.endsWith('/debug/brightness')) {
+                // 格式: "0:128" (像素索引:亮度)
+                const match = message.match(/^(\d+):(\d+)$/);
+                if (match) {
+                    const pixelIndex = parseInt(match[1]);
+                    const brightness = parseInt(match[2]);
+                    console.log('[App] DEBUG brightness update - pixel:', pixelIndex, 'brightness:', brightness);
+                    ui.updatePixelBrightness(pixelIndex, brightness);
+                }
+            } else if (topic.endsWith('/debug/index')) {
+                if (message.toLowerCase() === 'clear') {
+                    console.log('[App] DEBUG cleared');
+                    ui.updateDebugStatus(false);
+                    ui.updateVisualization(); // 重置可视化
+                }
+            }
         }
 
         // INFO消息

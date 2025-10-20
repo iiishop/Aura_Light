@@ -7,7 +7,7 @@
 // ============ CONFIGURATION ============
 // 设置连接的灯珠数量 (1-无限制)
 // Set the number of NeoPixel LEDs connected (1-unlimited)
-#define NUM_PIXELS 1           // ← 修改这里来改变灯珠数量
+#define NUM_PIXELS 8           // ← 修改这里来改变灯珠数量
 #define SYSTEM_VERSION "2.0.0" // V2.0版本
 // =======================================
 

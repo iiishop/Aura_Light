@@ -246,6 +246,9 @@ class UIManager {
     updateVisualization() {
         this.elements.lightVisualization.innerHTML = '';
 
+        // 设置像素数量属性，用于响应式布局
+        this.elements.lightVisualization.setAttribute('data-pixel-count', this.state.pixelCount);
+
         for (let i = 0; i < this.state.pixelCount; i++) {
             const pixel = document.createElement('div');
             pixel.className = 'pixel';
@@ -258,17 +261,48 @@ class UIManager {
                 // 根据模式设置颜色
                 const color = this.getModeColor(this.state.currentMode);
                 pixel.style.backgroundColor = color;
-                pixel.style.color = color;
+                pixel.style.color = color; // 用于currentColor
+                pixel.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
 
                 // IDLE模式添加呼吸效果
                 if (this.state.currentMode === 'idle') {
                     pixel.classList.add('breathing');
                 }
             } else {
-                pixel.style.backgroundColor = '#333';
+                pixel.style.backgroundColor = '#2a2a2a';
+                pixel.style.color = '#2a2a2a';
+                pixel.style.boxShadow = 'inset 0 3px 6px rgba(0,0,0,0.6)';
             }
 
             this.elements.lightVisualization.appendChild(pixel);
+        }
+    }
+
+    /**
+     * 更新单个像素的颜色
+     */
+    updatePixelColor(index, color) {
+        const pixel = this.elements.lightVisualization.querySelector(`[data-index="${index}"]`);
+        if (pixel && this.state.lightOn) {
+            pixel.style.backgroundColor = color;
+            pixel.style.color = color; // 用于currentColor
+            pixel.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}`;
+            pixel.classList.remove('breathing'); // 移除呼吸效果
+            pixel.classList.add('debug-mode'); // 添加DEBUG模式标记
+            console.log('[UI] ✓ Pixel', index, 'color updated to', color);
+        }
+    }
+
+    /**
+     * 更新单个像素的亮度
+     */
+    updatePixelBrightness(index, brightness) {
+        const pixel = this.elements.lightVisualization.querySelector(`[data-index="${index}"]`);
+        if (pixel && this.state.lightOn) {
+            const opacity = Math.max(0.2, brightness / 255); // 最小20%确保可见
+            pixel.style.opacity = opacity;
+            pixel.classList.add('debug-mode'); // 添加DEBUG模式标记
+            console.log('[UI] ✓ Pixel', index, 'brightness updated to', brightness, '(opacity:', opacity, ')');
         }
     }
 
