@@ -3,7 +3,7 @@
 
 void setupWiFi()
 {
-    // Check for WiFi module
+    
     if (WiFi.status() == WL_NO_MODULE)
     {
         Serial.println("[WiFi] Communication with WiFi module failed!");
@@ -12,7 +12,7 @@ void setupWiFi()
             ;
     }
 
-    // Check firmware version
+    
     String fv = WiFi.firmwareVersion();
     if (fv < WIFI_FIRMWARE_LATEST_VERSION)
     {
@@ -25,7 +25,7 @@ void setupWiFi()
     Serial.print("[WiFi] Configured networks: ");
     Serial.println(WIFI_NETWORK_COUNT);
 
-    // Display all configured networks
+    
     for (int i = 0; i < WIFI_NETWORK_COUNT; i++)
     {
         Serial.print("  ");
@@ -35,14 +35,14 @@ void setupWiFi()
     }
     Serial.println();
 
-    // Step 1: Scan for available networks
+    
     Serial.println("[WiFi] Scanning for available networks...");
     int numNetworks = WiFi.scanNetworks();
     Serial.print("[WiFi] Found ");
     Serial.print(numNetworks);
     Serial.println(" networks:");
 
-    // Display all scanned networks
+    
     for (int i = 0; i < numNetworks; i++)
     {
         Serial.print("  ");
@@ -53,7 +53,7 @@ void setupWiFi()
         Serial.print(WiFi.RSSI(i));
         Serial.print(" dBm, ");
 
-        // Get encryption type
+        
         byte encryption = WiFi.encryptionType(i);
         if (encryption == ENC_TYPE_WEP)
         {
@@ -83,7 +83,7 @@ void setupWiFi()
     }
     Serial.println();
 
-    // Step 2: Match configured networks with scanned networks
+    
     Serial.println("[WiFi] Matching configured networks with scan results...");
 
     struct MatchedNetwork
@@ -96,7 +96,7 @@ void setupWiFi()
     MatchedNetwork matchedNetworks[WIFI_NETWORK_COUNT];
     int matchCount = 0;
 
-    // Find matches
+    
     for (int i = 0; i < WIFI_NETWORK_COUNT; i++)
     {
         for (int j = 0; j < numNetworks; j++)
@@ -104,7 +104,7 @@ void setupWiFi()
             String scannedSSID = WiFi.SSID(j);
             String configSSID = String(WIFI_NETWORKS[i].ssid);
 
-            // Trim whitespace
+            
             scannedSSID.trim();
             configSSID.trim();
 
@@ -141,7 +141,7 @@ void setupWiFi()
     Serial.println(WIFI_NETWORK_COUNT);
     Serial.println();
 
-    // Step 3: Sort matched networks by signal strength (strongest first)
+    
     for (int i = 0; i < matchCount - 1; i++)
     {
         for (int j = i + 1; j < matchCount; j++)
@@ -168,7 +168,7 @@ void setupWiFi()
     }
     Serial.println();
 
-    // Step 4: Try to connect to matched networks
+    
     int status = WL_IDLE_STATUS;
     bool connected = false;
 
@@ -189,7 +189,7 @@ void setupWiFi()
         Serial.print(signalStrength);
         Serial.println(" dBm)");
 
-        // Try to connect (max 3 attempts)
+        
         const int MAX_ATTEMPTS = 3;
 
         for (int attempt = 0; attempt < MAX_ATTEMPTS && !connected; attempt++)
@@ -200,10 +200,10 @@ void setupWiFi()
             Serial.print(MAX_ATTEMPTS);
             Serial.print("...");
 
-            // Connect to WPA/WPA2 network
+            
             status = WiFi.begin(currentSSID, currentPass);
 
-            // Wait 8 seconds for connection
+            
             for (int j = 0; j < 8; j++)
             {
                 delay(1000);
@@ -211,7 +211,7 @@ void setupWiFi()
             }
             Serial.println();
 
-            // Check connection status
+            
             status = WiFi.status();
 
             if (status == WL_CONNECTED)
@@ -234,7 +234,7 @@ void setupWiFi()
         }
     }
 
-    // Final status check
+    
     if (connected)
     {
         Serial.println("========================================");
@@ -261,30 +261,22 @@ void setupWiFi()
     }
 }
 
-/**
- * 检查WiFi连接状态
- * @return true if connected, false otherwise
- */
 bool checkWiFiConnection()
 {
     return WiFi.status() == WL_CONNECTED;
 }
 
-/**
- * WiFi自动重连
- * 尝试重新连接到之前的网络或其他可用网络
- */
 void reconnectWiFi()
 {
     Serial.println("\n========================================");
     Serial.println("[WiFi] Connection lost! Attempting to reconnect...");
     Serial.println("========================================");
 
-    // Disconnect first
+    
     WiFi.disconnect();
     delay(1000);
 
-    // Scan for available networks
+    
     Serial.println("[WiFi] Scanning for available networks...");
     int numNetworks = WiFi.scanNetworks();
 
@@ -298,7 +290,7 @@ void reconnectWiFi()
     Serial.print(numNetworks);
     Serial.println(" networks");
 
-    // Match with configured networks
+    
     struct MatchedNetwork
     {
         int configIndex;
@@ -340,7 +332,7 @@ void reconnectWiFi()
         return;
     }
 
-    // Sort by signal strength
+    
     for (int i = 0; i < matchCount - 1; i++)
     {
         for (int j = i + 1; j < matchCount; j++)
@@ -354,7 +346,7 @@ void reconnectWiFi()
         }
     }
 
-    // Try to connect to strongest network
+    
     int configIdx = matchedNetworks[0].configIndex;
     const char *ssid = WIFI_NETWORKS[configIdx].ssid;
     const char *pass = WIFI_NETWORKS[configIdx].password;
@@ -367,7 +359,7 @@ void reconnectWiFi()
 
     int status = WiFi.begin(ssid, pass);
 
-    // Wait up to 10 seconds
+    
     for (int i = 0; i < 10; i++)
     {
         delay(1000);

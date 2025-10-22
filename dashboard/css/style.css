@@ -1,51 +1,44 @@
-/* ===================================
-   Aura Light - Modern Neumorphic Design
-   扁平拟物化设计风格
-   =================================== */
+
 
 :root {
-    /* 主色调 - 专业灰度系 */
-    --primary-color: #2c3e50;      /* 深灰蓝 */
-    --secondary-color: #34495e;    /* 中性灰 */
-    --accent-color: #16a085;       /* 青绿点缀 */
     
-    /* 状态颜色 */
+    --primary-color: #2c3e50;      
+    --secondary-color: #34495e;    
+    --accent-color: #16a085;       
+    
+    
     --success-color: #27ae60;
     --danger-color: #e74c3c;
     --warning-color: #f39c12;
     --info-color: #3498db;
     
-    /* 模式颜色 */
-    --mode-timer: #e74c3c;         /* 红色 - Timer */
-    --mode-weather: #27ae60;       /* 绿色 - Weather */
-    --mode-idle: #3498db;          /* 蓝色 - Idle */
     
-    /* 背景色 - 温暖灰白 */
+    --mode-timer: #e74c3c;         
+    --mode-weather: #27ae60;       
+    --mode-idle: #3498db;          
+    
+    
     --bg-primary: #fafafa;
     --bg-secondary: #f5f5f5;
     --bg-card: #ffffff;
     
-    /* 文字颜色 */
+    
     --text-primary: #1e293b;
     --text-secondary: #64748b;
     --text-tertiary: #94a3b8;
     --text-light: #ffffff;
     
-    /* 边框 */
+    
     --border-color: #d1d5db;
     --border-width: 2px;
     --border-radius: 12px;
     --border-radius-sm: 8px;
     
-    /* 动画 */
+    
     --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-/* ===================================
-   基础样式
-   =================================== */
 
 * {
     margin: 0;
@@ -66,7 +59,6 @@ body {
     flex-direction: column;
 }
 
-/* 背景装饰 - 微妙纹理 */
 body::before {
     content: '';
     position: fixed;
@@ -96,10 +88,6 @@ body > * {
     gap: 16px;
 }
 
-/* ===================================
-   Custom Scrollbar
-   =================================== */
-
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
@@ -119,10 +107,6 @@ body > * {
 ::-webkit-scrollbar-thumb:hover {
     background: #138d75;
 }
-
-/* ===================================
-   Header - Neumorphic Style
-   =================================== */
 
 .dashboard-header {
     background: var(--bg-card);
@@ -197,10 +181,6 @@ body > * {
     }
 }
 
-/* ===================================
-   Grid Layout - 固定高度无滚动
-   =================================== */
-
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -220,10 +200,6 @@ body > * {
     padding-right: 4px;
 }
 
-/* ===================================
-   Card Component - Neumorphic Style
-   =================================== */
-
 .card {
     background: var(--bg-card);
     border-radius: var(--border-radius);
@@ -235,7 +211,6 @@ body > * {
     flex-shrink: 0;
 }
 
-/* 卡片顶部装饰条 */
 .card::before {
     content: '';
     position: absolute;
@@ -266,10 +241,6 @@ body > * {
     background: var(--accent-color);
     border-radius: 2px;
 }
-
-/* ===================================
-   Form Elements
-   =================================== */
 
 .form-group {
     margin-bottom: 16px;
@@ -363,10 +334,6 @@ body > * {
     border-radius: var(--border-radius-sm);
 }
 
-/* ===================================
-   Buttons - Modern Neumorphic Style
-   =================================== */
-
 .btn {
     padding: 12px 24px;
     border: var(--border-width) solid var(--border-color);
@@ -383,7 +350,6 @@ body > * {
     overflow: hidden;
 }
 
-/* 按钮点击波纹效果 */
 .btn::after {
     content: '';
     position: absolute;
@@ -418,7 +384,6 @@ body > * {
     transform: none !important;
 }
 
-/* 彩色按钮 - 扁平风格 */
 .btn-primary {
     background: var(--primary-color);
     color: white;
@@ -484,10 +449,6 @@ body > * {
     flex: 1;
 }
 
-/* ===================================
-   Footer
-   =================================== */
-
 .dashboard-footer {
     background: var(--bg-primary);
     padding: 12px 20px;
@@ -511,11 +472,6 @@ body > * {
     opacity: 0.8;
 }
 
-/* ===================================
-   Custom Components - Status & Mode
-   =================================== */
-
-/* Status Badge */
 .status-badge {
     display: inline-flex;
     align-items: center;
@@ -559,7 +515,6 @@ body > * {
     50% { opacity: 0.7; transform: scale(1.1); }
 }
 
-/* Mode Badge */
 .mode-badge {
     display: inline-flex;
     align-items: center;
@@ -595,7 +550,6 @@ body > * {
     color: var(--mode-idle);
 }
 
-/* Mode Buttons */
 .mode-btn {
     padding: 16px 24px;
     border: 2px solid transparent;
@@ -663,7 +617,6 @@ body > * {
     background: var(--mode-idle);
 }
 
-/* Light Visualization */
 .light-circle {
     width: 120px;
     height: 120px;
@@ -721,7 +674,6 @@ body > * {
         inset 0 0 20px currentColor;
 }
 
-/* MQTT Log */
 .log-container {
     background: var(--bg-secondary);
     border-radius: var(--border-radius-sm);
@@ -777,7 +729,6 @@ body > * {
     color: var(--text-primary);
 }
 
-/* Info Grid */
 .info-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -814,10 +765,6 @@ body > * {
     color: var(--text-primary);
     font-family: 'Monaco', 'Menlo', monospace;
 }
-
-/* ===================================
-   Responsive Design
-   =================================== */
 
 @media (max-width: 1600px) {
     .dashboard-grid {
@@ -912,10 +859,6 @@ body > * {
     }
 }
 
-/* ===================================
-   Utility Classes
-   =================================== */
-
 .text-gradient {
     color: var(--accent-color);
 }
@@ -953,10 +896,6 @@ body > * {
     }
 }
 
-/* ===================================
-   Loading State
-   =================================== */
-
 .loading {
     position: relative;
     pointer-events: none;
@@ -984,10 +923,6 @@ body > * {
     }
 }
 
-/* ===================================
-   Fade In Animation
-   =================================== */
-
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -1011,10 +946,6 @@ body > * {
 .card:nth-child(4) { animation-delay: 0.4s; }
 .card:nth-child(5) { animation-delay: 0.5s; }
 .card:nth-child(6) { animation-delay: 0.6s; }
-
-/* ===================================
-   Weather Card - Elegant Visualization
-   =================================== */
 
 .weather-card {
     min-height: 0;
@@ -1138,10 +1069,6 @@ body > * {
     font-weight: 700;
     color: var(--text-primary);
 }
-
-/* ===================================
-   Print Styles
-   =================================== */
 
 @media print {
     body {

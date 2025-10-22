@@ -1,7 +1,4 @@
-/**
- * 主应用模块
- * 协调所有模块工作
- */
+
 
 import mqttManager from './mqtt.js';
 import ui from './ui.js';
@@ -14,43 +11,39 @@ class AuraLightDashboard {
         this.init();
     }
 
-    /**
-     * 初始化应用
-     */
+    
     init() {
         console.log('[App] Initializing Aura Light Dashboard...');
 
-        // 初始化UI
+        
         ui.init();
 
-        // 设置MQTT回调
+        
         this.setupMQTTCallbacks();
 
-        // 设置UI事件
+        
         this.setupUIEvents();
 
         console.log('[App] Dashboard ready!');
     }
 
-    /**
-     * 设置MQTT回调
-     */
+    
     setupMQTTCallbacks() {
-        // 连接成功
+        
         mqttManager.on('connect', () => {
             console.log('[App] MQTT connect callback triggered');
             ui.updateConnectionStatus(true);
             ui.addLog('success', 'System', '✓ Connected to MQTT broker');
         });
 
-        // 断开连接
+        
         mqttManager.on('disconnect', () => {
             console.log('[App] MQTT disconnect callback triggered');
             ui.updateConnectionStatus(false);
             ui.addLog('error', 'System', '✗ Disconnected from MQTT broker');
         });
 
-        // 接收消息
+        
         mqttManager.on('message', (topic, message) => {
             console.log('========================================');
             console.log('[App] RAW MESSAGE RECEIVED');
@@ -61,20 +54,18 @@ class AuraLightDashboard {
             ui.addLog('received', topic, message);
         });
 
-        // 错误处理
+        
         mqttManager.on('error', (error) => {
             console.error('[App] MQTT Error:', error);
             ui.addLog('error', 'System', `Error: ${error.message}`);
         });
     }
 
-    /**
-     * 处理接收到的MQTT消息
-     */
+    
     handleMessage(topic, message) {
         console.log('[App] Handling message:', topic, '=', message);
 
-        // 解析topic
+        
         const parts = topic.split('/');
         const lastPart = parts[parts.length - 1];
         const secondLastPart = parts[parts.length - 2];
@@ -83,33 +74,33 @@ class AuraLightDashboard {
         console.log('[App] Last part:', lastPart);
         console.log('[App] Second last part:', secondLastPart);
 
-        // STATUS消息
+        
         if (topic.endsWith('/status')) {
             console.log('[App] → STATUS message');
             ui.updateLightStatus(message);
         }
 
-        // MODE消息
+        
         else if (topic.endsWith('/mode')) {
             console.log('[App] → MODE message');
             ui.updateMode(message);
         }
 
-        // CONTROLLER消息
+        
         else if (topic.endsWith('/controller')) {
             console.log('[App] → CONTROLLER message');
             ui.updateController(message);
         }
 
-        // DEBUG消息
+        
         else if (topic.includes('/debug/')) {
             console.log('[App] → DEBUG message');
-            // DEBUG消息表示DEBUG模式激活
+            
             ui.updateDebugStatus(true);
 
-            // 解析DEBUG消息并更新可视化
+            
             if (topic.endsWith('/debug/color')) {
-                // 格式: "0:#FF0000" (像素索引:颜色)
+                
                 const match = message.match(/^(\d+):#([0-9A-Fa-f]{6})$/);
                 if (match) {
                     const pixelIndex = parseInt(match[1]);
@@ -118,7 +109,7 @@ class AuraLightDashboard {
                     ui.updatePixelColor(pixelIndex, color);
                 }
             } else if (topic.endsWith('/debug/brightness')) {
-                // 格式: "0:128" (像素索引:亮度)
+                
                 const match = message.match(/^(\d+):(\d+)$/);
                 if (match) {
                     const pixelIndex = parseInt(match[1]);
@@ -130,16 +121,16 @@ class AuraLightDashboard {
                 if (message.toLowerCase() === 'clear') {
                     console.log('[App] DEBUG cleared');
                     ui.updateDebugStatus(false);
-                    ui.updateVisualization(); // 重置可视化
+                    ui.updateVisualization(); 
                 }
             }
         }
 
-        // INFO消息
+        
         else if (topic.includes('/info/')) {
             console.log('[App] → INFO message');
 
-            // 特殊处理天气消息（JSON格式）
+            
             if (topic.endsWith('/info/weather')) {
                 console.log('[App] → WEATHER INFO message');
                 this.weatherManager.handleWeatherData(message);
@@ -149,26 +140,23 @@ class AuraLightDashboard {
         }
     }
 
-    /**
-     * 处理INFO消息
-     * topic格式: student/CASA0014/ucfninn/info/wifi/ssid
-     */
+    
     handleInfoMessage(fullTopic, category, field, value) {
         console.log('[App] INFO - category:', category, 'field:', field, 'value:', value);
 
-        // 特殊处理 controller 消息
+        
         if (category === 'info' && field === 'controller') {
             console.log('[App] Controller update from Arduino:', value);
             ui.updateController(value);
             return;
         }
 
-        // 构建字段名: info + Category + Field (驼峰命名)
-        // wifi/ssid → infoWifiSsid → infoWifiSSID (特殊处理)
+        
+        
         const categoryCapital = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
         let fieldCapital = field.charAt(0).toUpperCase() + field.slice(1).toLowerCase();
 
-        // 特殊字段名处理
+        
         const fieldMap = {
             'ssid': 'SSID',
             'ip': 'IP',
@@ -185,46 +173,44 @@ class AuraLightDashboard {
 
         ui.updateInfo(fieldName, value);
 
-        // 如果收到城市信息，更新WeatherManager的城市名（仅用于显示）
+        
         if (category === 'location' && field === 'city') {
             console.log('[App] City detected:', value);
             this.weatherManager.setCity(value);
         }
     }
 
-    /**
-     * 设置UI事件
-     */
+    
     setupUIEvents() {
-        // 连接按钮
+        
         ui.elements.connectBtn.addEventListener('click', () => {
             console.log('[App] Connect button clicked');
             this.connect();
         });
 
-        // 断开按钮
+        
         ui.elements.disconnectBtn.addEventListener('click', () => {
             console.log('[App] Disconnect button clicked');
             this.disconnect();
         });
 
-        // 刷新INFO按钮
+        
         ui.elements.refreshInfoBtn.addEventListener('click', () => {
             console.log('[App] Refresh INFO button clicked');
             this.requestInfo();
         });
 
-        // 开灯按钮
+        
         ui.elements.turnOnBtn.addEventListener('click', () => {
             this.publishStatus('on');
         });
 
-        // 关灯按钮
+        
         ui.elements.turnOffBtn.addEventListener('click', () => {
             this.publishStatus('off');
         });
 
-        // 模式按钮
+        
         ui.elements.modeButtons.forEach(btn => {
             btn.addEventListener('click', () => {
                 const mode = btn.dataset.mode;
@@ -232,23 +218,23 @@ class AuraLightDashboard {
             });
         });
 
-        // 控制器切换回调
+        
         ui.onControllerSwitch = (controller) => {
             console.log('[App] Controller switch requested:', controller);
             this.publishController(controller);
         };
 
-        // 应用DEBUG按钮
+        
         ui.elements.applyDebugBtn.addEventListener('click', () => {
             this.applyDebug();
         });
 
-        // 清除DEBUG按钮
+        
         ui.elements.clearDebugBtn.addEventListener('click', () => {
             this.clearDebug();
         });
 
-        // 回车连接
+        
         ui.elements.usernameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.connect();
@@ -256,9 +242,7 @@ class AuraLightDashboard {
         });
     }
 
-    /**
-     * 连接到MQTT
-     */
+    
     async connect() {
         const username = ui.getUsername();
 
@@ -289,20 +273,16 @@ class AuraLightDashboard {
         }
     }
 
-    /**
-     * 断开连接
-     */
+    
     disconnect() {
         mqttManager.disconnect();
         ui.addLog('info', 'System', 'Disconnecting...');
     }
 
-    /**
-     * 请求设备重新发送INFO数据
-     */
+    
     requestInfo() {
         console.log('[App] Requesting INFO from device...');
-        // 发送一个refresh命令到设备
+        
         if (mqttManager.publish('/refresh', 'info')) {
             ui.addLog('sent', 'refresh', 'info');
             console.log('[App] INFO refresh request sent');
@@ -311,51 +291,43 @@ class AuraLightDashboard {
         }
     }
 
-    /**
-     * 发布STATUS消息
-     */
+    
     publishStatus(status) {
         if (mqttManager.publish(MQTT_CONFIG.topics.status, status)) {
             ui.addLog('sent', 'status', status);
-            // 立即更新UI，不等待retained消息
+            
             ui.updateLightStatus(status);
         }
     }
 
-    /**
-     * 发布MODE消息
-     */
+    
     publishMode(mode) {
         if (mqttManager.publish(MQTT_CONFIG.topics.mode, mode)) {
             ui.addLog('sent', 'mode', mode);
-            // 立即更新UI，不等待retained消息
+            
             ui.updateMode(mode);
         }
     }
 
-    /**
-     * 发布Controller切换消息
-     */
+    
     publishController(controller) {
         if (mqttManager.publish(MQTT_CONFIG.topics.controller, controller)) {
             ui.addLog('sent', 'controller', controller);
-            // 立即更新UI，不等待retained消息
+            
             ui.updateController(controller);
         }
     }
 
-    /**
-     * 应用DEBUG设置
-     */
+    
     applyDebug() {
         const settings = ui.getDebugSettings();
 
-        // 发布颜色
+        
         const colorMsg = `${settings.index}:${settings.color}`;
         mqttManager.publish(MQTT_CONFIG.topics.debugColor, colorMsg);
         ui.addLog('sent', 'debug/color', colorMsg);
 
-        // 发布亮度
+        
         const brightnessMsg = `${settings.index}:${settings.brightness}`;
         mqttManager.publish(MQTT_CONFIG.topics.debugBrightness, brightnessMsg);
         ui.addLog('sent', 'debug/brightness', brightnessMsg);
@@ -363,9 +335,7 @@ class AuraLightDashboard {
         ui.updateDebugStatus(true);
     }
 
-    /**
-     * 清除DEBUG模式
-     */
+    
     clearDebug() {
         if (mqttManager.publish(MQTT_CONFIG.topics.debugIndex, 'clear')) {
             ui.addLog('sent', 'debug/index', 'clear');
@@ -374,7 +344,6 @@ class AuraLightDashboard {
     }
 }
 
-// 启动应用
 document.addEventListener('DOMContentLoaded', () => {
     new AuraLightDashboard();
 });

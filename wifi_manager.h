@@ -3,7 +3,6 @@
 
 #include <WiFiNINA.h>
 
-// Function declarations
 void setupWiFi();
 bool checkWiFiConnection();
 void reconnectWiFi();

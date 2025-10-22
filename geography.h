@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 
-// Function declaration
 String getCurrentCity();
 
 #endif

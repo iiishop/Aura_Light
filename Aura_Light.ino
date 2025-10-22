@@ -5,35 +5,28 @@
 #include "luminaire_controller.h"
 #include "weather_manager.h"
 
-// ============ CONFIGURATION ============
-// 设置连接的灯珠数量 (1-无限制)
-// Set the number of NeoPixel LEDs connected (1-unlimited)
-#define NUM_PIXELS 8           // ← 修改这里来改变灯珠数量
-#define SYSTEM_VERSION "2.1.0" // V2.1版本 - 添加Luminaire支持
-#define LUMINAIRE_ID "16"      // Luminaire light ID
-// =======================================
+#define NUM_PIXELS 8           
+#define SYSTEM_VERSION "2.1.0" 
+#define LUMINAIRE_ID "16"      
 
-// Light mode selection
 enum ControllerMode
 {
-  MODE_LOCAL,    // 控制本地实体灯 (MKR1010上的NeoPixel)
-  MODE_LUMINAIRE // 控制外接Luminaire (72 LEDs)
+  MODE_LOCAL,    
+  MODE_LUMINAIRE 
 };
 
-// Create instances
 MQTTManager mqtt;
 LightController lightControl;
 LuminaireController luminaireControl;
 WeatherManager weatherManager;
-String systemCity = "London";                  // 默认城市，在setup()中更新
-ControllerMode currentController = MODE_LOCAL; // 默认控制本地灯
+String systemCity = "London";                  
+ControllerMode currentController = MODE_LOCAL; 
 
-// MQTT message callback - forward to appropriate controller
 void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
 {
   String topicStr = String(topic);
 
-  // Check if this is a controller switch command
+  
   if (topicStr.endsWith("/controller"))
   {
     char message[length + 1];
@@ -48,16 +41,16 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       lightControl.setActive(true);
       luminaireControl.setActive(false);
 
-      // Publish controller change
+      
       mqtt.publishInfo("controller", "local", true);
 
-      // Sync current state and mode to local controller
+      
       const char *currentState = lightControl.getStateString();
       const char *currentMode = lightControl.getModeString();
       mqtt.publish("status", currentState, true);
       mqtt.publish("mode", currentMode, true);
 
-      // Publish pixel count for DEBUG
+      
       mqtt.publishInfo("lighter/number", String(lightControl.getNumPixels()).c_str(), true);
 
       Serial.println("[System] Switched to LOCAL controller");
@@ -72,16 +65,16 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       lightControl.setActive(false);
       luminaireControl.setActive(true);
 
-      // Publish controller change
+      
       mqtt.publishInfo("controller", "luminaire", true);
 
-      // Sync current state and mode to luminaire controller
+      
       const char *currentState = luminaireControl.getStateString();
       const char *currentMode = luminaireControl.getModeString();
       mqtt.publish("status", currentState, true);
       mqtt.publish("mode", currentMode, true);
 
-      // Publish pixel count for DEBUG
+      
       mqtt.publishInfo("lighter/number", String(luminaireControl.getNumLEDs()).c_str(), true);
 
       Serial.println("[System] Switched to LUMINAIRE controller");
@@ -93,7 +86,7 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
     return;
   }
 
-  // Forward to active controller
+  
   if (currentController == MODE_LOCAL)
   {
     lightControl.handleMQTTMessage(topic, payload, length);
@@ -106,13 +99,13 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
 
 void setup()
 {
-  // Initialize serial communication
+  
   Serial.begin(9600);
 
-  // Wait for serial port to connect
+  
   while (!Serial)
   {
-    ; // wait for serial port to connect. Needed for native USB port only
+    ; 
   }
 
   Serial.println("\n\n");
@@ -120,17 +113,17 @@ void setup()
   Serial.println("   Aura Light System V2.1 Starting... ");
   Serial.println("========================================\n");
 
-  // 1. Connect to WiFi
+  
   setupWiFi();
 
-  // 2. Get current location
+  
   systemCity = getCurrentCity();
   Serial.println("========================================");
   Serial.print("[System] Current city: ");
   Serial.println(systemCity);
   Serial.println("========================================\n");
 
-  // 3. Initialize MQTT
+  
   mqtt.begin();
   mqtt.setCallback(mqttMessageReceived);
 
@@ -138,7 +131,7 @@ void setup()
   {
     Serial.println("[System] ✓ MQTT connected\n");
 
-    // Subscribe to controller switch topic
+    
     String controllerTopic = String(TOPIC_BASE) + "/controller";
     mqtt.subscribe(controllerTopic.c_str());
     Serial.print("[MQTT] ✓ Subscribed to: ");
@@ -149,32 +142,32 @@ void setup()
     Serial.println("[System] ✗ MQTT connection failed\n");
   }
 
-  // 4. Initialize Local Light Controller
+  
   Serial.print("[System] Initializing local controller with ");
   Serial.print(NUM_PIXELS);
   Serial.println(" NeoPixel(s)...");
   lightControl.begin(&mqtt, NUM_PIXELS);
-  lightControl.setActive(true); // Default to local controller
+  lightControl.setActive(true); 
 
-  // 5. Initialize Luminaire Controller
+  
   Serial.println("[System] Initializing Luminaire controller...");
   luminaireControl.begin(&mqtt, LUMINAIRE_ID);
-  luminaireControl.setActive(false); // Not active by default
+  luminaireControl.setActive(false); 
 
-  // 6. V2.1: Publish all INFO topics
+  
   if (mqtt.isConnected())
   {
     Serial.println("\n[System] Publishing system information...");
     mqtt.publishAllInfo(NUM_PIXELS, NEOPIXEL_PIN, SYSTEM_VERSION, systemCity.c_str());
 
-    // Publish initial state
+    
     lightControl.publishState();
 
-    // Publish controller mode
+    
     mqtt.publishInfo("controller", "local", true);
   }
 
-  // 7. Initialize Weather Manager
+  
   Serial.println("\n[System] Initializing weather manager...");
   weatherManager.begin(&mqtt, systemCity);
 
@@ -182,7 +175,7 @@ void setup()
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
 
-  // V2.1: Print control instructions
+  
   Serial.println("MQTT Control Commands (V2.1):");
   Serial.println("  CONTROLLER:");
   Serial.println("    .../controller: local / luminaire");
@@ -208,23 +201,23 @@ void setup()
 
 void loop()
 {
-  // Check WiFi connection status (every 30 seconds)
+  
   static unsigned long lastWiFiCheck = 0;
-  if (millis() - lastWiFiCheck > 30000) // 30 seconds
+  if (millis() - lastWiFiCheck > 30000) 
   {
     if (!checkWiFiConnection())
     {
       Serial.println("\n[System] ✗ WiFi connection lost!");
       reconnectWiFi();
 
-      // If WiFi reconnected, also reconnect MQTT
+      
       if (checkWiFiConnection() && !mqtt.isConnected())
       {
         Serial.println("[System] Reconnecting to MQTT...");
         if (mqtt.reconnect())
         {
           Serial.println("[System] ✓ MQTT reconnected!");
-          // Re-publish system info
+          
           mqtt.publishAllInfo(lightControl.getNumPixels(), NEOPIXEL_PIN, SYSTEM_VERSION, systemCity.c_str());
           lightControl.publishState();
           mqtt.publishInfo("controller", currentController == MODE_LOCAL ? "local" : "luminaire", true);
@@ -234,16 +227,16 @@ void loop()
     lastWiFiCheck = millis();
   }
 
-  // Maintain MQTT connection
+  
   mqtt.loop();
 
-  // Update light controller (handles breathing effects in IDLE mode)
+  
   lightControl.loop();
 
-  // Update weather manager (auto-fetch every 10 minutes)
+  
   weatherManager.loop();
 
-  // Check for serial commands
+  
   if (Serial.available() > 0)
   {
     String command = Serial.readStringUntil('\n');
@@ -252,7 +245,7 @@ void loop()
     if (command == "republish" || command == "r")
     {
       Serial.println("\n[System] Re-publishing all states...");
-      lightControl.publishState(); // 重新发布 status 和 mode
+      lightControl.publishState(); 
       Serial.println("[System] ✓ States re-published!");
     }
     else if (command == "info" || command == "i")
@@ -271,13 +264,13 @@ void loop()
     }
   }
 
-  // V2.0: Heartbeat - publish uptime every 5 minutes
+  
   static unsigned long lastHeartbeat = 0;
-  if (millis() - lastHeartbeat > 300000) // 5 minutes
+  if (millis() - lastHeartbeat > 300000) 
   {
     if (mqtt.isConnected())
     {
-      mqtt.publishInfo_System_Uptime(); // 自动计算uptime
+      mqtt.publishInfo_System_Uptime(); 
     }
     lastHeartbeat = millis();
   }

@@ -1,8 +1,5 @@
-/* ===================================
-   组件样式
-   =================================== */
 
-/* Status Display */
+
 .status-display {
     text-align: center;
     margin-bottom: 16px;
@@ -32,7 +29,6 @@
     50% { box-shadow: 0 0 20px var(--success-color); }
 }
 
-/* Mode Display */
 .mode-display {
     text-align: center;
     margin-bottom: 16px;
@@ -63,14 +59,12 @@
     background: var(--mode-idle);
 }
 
-/* Mode Buttons */
 .mode-buttons {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
 }
 
-/* Controller Selection Styles */
 .controller-display {
     text-align: center;
     margin-bottom: 16px;
@@ -126,7 +120,6 @@
     box-shadow: var(--shadow-md);
 }
 
-/* Mode Selection Styles */
 .mode-buttons {
     display: flex;
     flex-direction: column;
@@ -182,7 +175,6 @@
     font-size: 32px;
 }
 
-/* Info Grid */
 .info-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -209,7 +201,6 @@
     font-family: 'Courier New', monospace;
 }
 
-/* Light Visualization */
 .light-visualization {
     display: flex;
     flex-wrap: wrap;
@@ -238,7 +229,6 @@
     justify-content: center;
 }
 
-/* 像素标签 */
 .pixel::after {
     content: attr(data-index);
     position: absolute;
@@ -265,7 +255,6 @@
     filter: brightness(1.2);
 }
 
-/* 发光脉冲效果 */
 @keyframes glow-pulse {
     0%, 100% { 
         box-shadow: 0 0 15px currentColor, 
@@ -281,7 +270,6 @@
     }
 }
 
-/* 呼吸效果动画 */
 .pixel.breathing {
     animation: breathe 3s ease-in-out infinite, glow-pulse 2s ease-in-out infinite;
 }
@@ -297,18 +285,16 @@
     }
 }
 
-/* DEBUG模式标记 */
 .pixel.debug-mode {
     border-width: 4px;
     border-style: dashed;
-    animation: none; /* 停止所有动画 */
+    animation: none; 
 }
 
 .pixel.debug-mode::after {
     content: attr(data-index) " 🔧";
 }
 
-/* Luminaire Grid Display (12x6 = 72 LEDs) */
 .light-visualization.luminaire-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -331,7 +317,6 @@
     bottom: -18px;
 }
 
-/* Luminaire iframe Display */
 .light-visualization.luminaire-iframe {
     min-height: 600px;
     height: 600px;
@@ -343,7 +328,6 @@
     display: block;
 }
 
-/* Debug Status */
 .debug-status {
     margin-top: 16px;
     padding: 10px;
@@ -366,7 +350,6 @@
     margin-bottom: 16px;
 }
 
-/* MQTT Log */
 .log-controls {
     display: flex;
     justify-content: space-between;
@@ -442,29 +425,24 @@
     color: #ff9800;
 }
 
-/* Connection Card */
 .connection-card input {
     font-family: 'Courier New', monospace;
 }
 
-/* Control Card */
 .control-card .button-group {
     margin-top: 16px;
 }
 
-/* Color Input Sync */
 .form-group input[type="color"] {
     margin-bottom: 8px;
 }
 
-/* Brightness Value Display */
 #brightnessValue {
     float: right;
     font-weight: 600;
     color: var(--primary-color);
 }
 
-/* Loading Animation */
 .loading {
     display: inline-block;
     width: 16px;
@@ -479,7 +457,6 @@
     to { transform: rotate(360deg); }
 }
 
-/* Success/Error Messages */
 .message {
     padding: 12px;
     border-radius: 4px;

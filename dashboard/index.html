@@ -11,7 +11,7 @@
 
 <body>
     <div class="container">
-        <!-- Header -->
+        
         <header class="dashboard-header">
             <h1>Aura Light Control Panel</h1>
             <div class="connection-status" id="connectionStatus">
@@ -20,13 +20,13 @@
             </div>
         </header>
 
-        <!-- Main Content Grid -->
+        
         <div class="dashboard-grid">
 
-            <!-- Left Column: Controls -->
+            
             <div class="column">
 
-                <!-- Connection Panel -->
+                
                 <section class="card connection-card">
                     <h2>MQTT Connection</h2>
                     <div class="form-group">
@@ -37,7 +37,7 @@
                     <button id="disconnectBtn" class="btn btn-secondary" disabled>Disconnect</button>
                 </section>
 
-                <!-- Status Control -->
+                
                 <section class="card control-card">
                     <h2>Light Status</h2>
                     <div class="status-display">
@@ -49,7 +49,7 @@
                     </div>
                 </section>
 
-                <!-- Controller Selection -->
+                
                 <section class="card controller-card">
                     <h2>Controller</h2>
                     <div class="controller-display">
@@ -65,7 +65,7 @@
                     </div>
                 </section>
 
-                <!-- Mode Control -->
+                
                 <section class="card mode-card">
                     <h2>Light Mode</h2>
                     <div class="mode-display">
@@ -89,10 +89,10 @@
 
             </div>
 
-            <!-- Column 2: Weather -->
+            
             <div class="column">
 
-                <!-- Weather Visualization -->
+                
                 <section class="card weather-card">
                     <h2>Weather</h2>
                     <div class="weather-display">
@@ -128,10 +128,10 @@
 
             </div>
 
-            <!-- Column 3: Info & Visualization -->
+            
             <div class="column">
 
-                <!-- System Info -->
+                
                 <section class="card info-card">
                     <div
                         style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -178,20 +178,20 @@
                     </div>
                 </section>
 
-                <!-- Light Visualization -->
+                
                 <section class="card visualization-card">
                     <h2>Light Visualization</h2>
                     <div id="lightVisualization" class="light-visualization">
-                        <!-- Will be populated by JavaScript -->
+                        
                     </div>
                 </section>
 
             </div>
 
-            <!-- Column 4: Debug Control -->
+            
             <div class="column">
 
-                <!-- Debug Control -->
+                
                 <section class="card debug-card">
                     <h2>DEBUG Mode</h2>
                     <p class="debug-info">Control individual pixels for testing</p>
@@ -224,7 +224,7 @@
                     </div>
                 </section>
 
-                <!-- MQTT Log -->
+                
                 <section class="card log-card">
                     <h2>MQTT Messages</h2>
                     <div class="log-controls">
@@ -241,7 +241,7 @@
 
         </div>
 
-        <!-- Footer -->
+        
         <footer class="dashboard-footer">
             <p>Aura Light Dashboard V2.0 | CASA0014 Coursework |
                 <a href="https://github.com/yourusername/aura-light" target="_blank">GitHub</a>
@@ -250,7 +250,7 @@
 
     </div>
 
-    <!-- Scripts -->
+    
     <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
     <script type="module" src="js/app.js"></script>
 </body>

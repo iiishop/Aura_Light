@@ -20,7 +20,7 @@ void WeatherManager::loop()
 {
     unsigned long currentTime = millis();
 
-    // 每10分钟更新一次，或首次运行时立即更新
+    
     if (lastUpdate == 0 || (currentTime - lastUpdate >= UPDATE_INTERVAL))
     {
         if (mqtt && mqtt->isConnected())
@@ -57,7 +57,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     Serial.println("[Weather] ✓ SSL connection established");
 
-    // 构建HTTP请求
+    
     String url = "/" + city + "?format=j1";
 
     Serial.print("[Weather] Sending request: GET ");
@@ -70,7 +70,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     Serial.println("[Weather] Request sent, waiting for response...");
 
-    // 等待响应
+    
     unsigned long timeout = millis();
     while (client.available() == 0)
     {
@@ -85,7 +85,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     Serial.println("[Weather] ✓ Response received");
 
-    // 跳过HTTP头
+    
     Serial.println("[Weather] Reading HTTP headers...");
     bool headersEnded = false;
     int headerCount = 0;
@@ -102,10 +102,10 @@ void WeatherManager::fetchAndPublishWeather()
         }
     }
 
-    // 流式读取JSON，只提取current_condition部分
+    
     Serial.println("[Weather] Searching for current_condition...");
 
-    // 查找 "current_condition" 的开始
+    
     String searchKey = "\"current_condition\":";
     bool foundKey = false;
     String buffer = "";
@@ -119,7 +119,7 @@ void WeatherManager::fetchAndPublishWeather()
             foundKey = true;
             Serial.println("[Weather] ✓ Found current_condition key");
         }
-        // 限制buffer大小，避免内存溢出
+        
         if (buffer.length() > 100)
         {
             buffer = buffer.substring(buffer.length() - 50);
@@ -133,7 +133,7 @@ void WeatherManager::fetchAndPublishWeather()
         return;
     }
 
-    // 读取current_condition的数组内容 [{ ... }]
+    
     Serial.println("[Weather] Reading current_condition data...");
     String conditionJson = "";
     int bracketCount = 0;
@@ -159,7 +159,7 @@ void WeatherManager::fetchAndPublishWeather()
             else if (c == '}')
                 bracketCount--;
 
-            // 当遇到数组结束且括号平衡时，停止读取
+            
             if (c == ']' && bracketCount == 0)
             {
                 Serial.println("[Weather] ✓ current_condition data extracted");
@@ -167,7 +167,7 @@ void WeatherManager::fetchAndPublishWeather()
             }
         }
 
-        // 防止内存溢出，限制读取大小
+        
         if (conditionJson.length() > 2048)
         {
             Serial.println("[Weather] ✗ Data too large");
@@ -188,7 +188,7 @@ void WeatherManager::fetchAndPublishWeather()
         return;
     }
 
-    // 解析current_condition数组
+    
     Serial.println("[Weather] Parsing current_condition JSON...");
     DynamicJsonDocument doc(2048);
     DeserializationError error = deserializeJson(doc, conditionJson);
@@ -202,7 +202,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     Serial.println("[Weather] ✓ JSON parsed successfully");
 
-    // 提取第一个元素
+    
     if (!doc.is<JsonArray>() || doc.size() == 0)
     {
         Serial.println("[Weather] ✗ Invalid current_condition format");
@@ -211,7 +211,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     JsonObject weather = doc[0];
 
-    // 构建简化的JSON对象用于发送
+    
     Serial.println("[Weather] Building weather JSON...");
     DynamicJsonDocument weatherDoc(1024);
 
@@ -233,7 +233,7 @@ void WeatherManager::fetchAndPublishWeather()
     weatherDoc["uvIndex"] = weather["uvIndex"].as<String>();
     weatherDoc["localObsDateTime"] = weather["localObsDateTime"].as<String>();
 
-    // 如果有中文描述
+    
     if (weather.containsKey("lang_zh"))
     {
         JsonArray langZh = weather["lang_zh"];
@@ -246,7 +246,7 @@ void WeatherManager::fetchAndPublishWeather()
 
     Serial.println("[Weather] ✓ Weather JSON built");
 
-    // 序列化为JSON字符串
+    
     String weatherJson;
     serializeJson(weatherDoc, weatherJson);
 
@@ -254,7 +254,7 @@ void WeatherManager::fetchAndPublishWeather()
     Serial.print(weatherJson.length());
     Serial.println(" bytes");
 
-    // 发送到MQTT (retained)
+    
     Serial.println("[Weather] Publishing to MQTT...");
     if (mqtt->publishInfo("weather", weatherJson.c_str(), true))
     {

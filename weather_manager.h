@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-class MQTTManager; // Forward declaration
+class MQTTManager; 
 
 class WeatherManager
 {
@@ -11,7 +11,7 @@ private:
     MQTTManager *mqtt;
     String city;
     unsigned long lastUpdate;
-    const unsigned long UPDATE_INTERVAL = 600000; // 10分钟
+    const unsigned long UPDATE_INTERVAL = 600000; 
 
 public:
     WeatherManager();
