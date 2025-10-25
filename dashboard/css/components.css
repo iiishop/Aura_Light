@@ -121,29 +121,54 @@
 }
 
 .mode-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .mode-buttons {
+        grid-template-columns: 1fr;
+    }
 }
 
 .mode-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 16px 12px;
+    padding: 20px 16px;
     border: 2px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 12px;
     background: white;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: 14px;
     font-weight: 500;
+    color: var(--text-primary);
+    min-height: 100px;
+    position: relative;
+    overflow: hidden;
+}
+
+.mode-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(0,0,0,0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .mode-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-color);
+}
+
+.mode-btn:hover:not(:disabled)::before {
+    opacity: 1;
 }
 
 .mode-btn:disabled {
@@ -153,26 +178,67 @@
 
 .mode-btn.active {
     border-width: 3px;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
 
 .mode-btn.mode-timer.active {
     border-color: var(--mode-timer);
-    background: rgba(255, 68, 68, 0.1);
+    background: linear-gradient(135deg, var(--mode-timer) 0%, #c0392b 100%);
+    color: white;
+}
+
+.mode-btn.mode-timer.active .mode-icon {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .mode-btn.mode-weather.active {
     border-color: var(--mode-weather);
-    background: rgba(68, 255, 68, 0.1);
+    background: linear-gradient(135deg, var(--mode-weather) 0%, #229954 100%);
+    color: white;
+}
+
+.mode-btn.mode-weather.active .mode-icon {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .mode-btn.mode-idle.active {
     border-color: var(--mode-idle);
-    background: rgba(68, 68, 255, 0.1);
+    background: linear-gradient(135deg, var(--mode-idle) 0%, #2874a6 100%);
+    color: white;
+}
+
+.mode-btn.mode-idle.active .mode-icon {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.mode-btn.mode-music.active {
+    border-color: #95a5a6;
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+}
+
+.mode-btn.mode-music.active .mode-icon {
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .mode-icon {
-    font-size: 32px;
+    font-size: 36px;
+    line-height: 1;
+    transition: all 0.3s ease;
+}
+
+.mode-btn span:last-child {
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.mode-btn:active:not(:disabled) {
+    transform: translateY(-1px);
 }
 
 .info-grid {
@@ -248,6 +314,16 @@
                 0 0 45px currentColor,
                 inset 0 0 10px rgba(255,255,255,0.3);
     animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.pixel.on.white-light {
+    border: 3px solid #d0d0d0;
+    box-shadow: 0 0 20px rgba(255,255,255,0.8),
+                0 0 40px rgba(255,255,255,0.6),
+                0 0 60px rgba(255,255,255,0.4),
+                0 4px 12px rgba(0,0,0,0.25),
+                inset 0 2px 8px rgba(255,255,255,0.5),
+                inset 0 -2px 8px rgba(0,0,0,0.15);
 }
 
 .pixel:hover {

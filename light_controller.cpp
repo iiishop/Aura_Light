@@ -6,9 +6,9 @@ LightController::LightController()
     strip = nullptr;
     numPixels = DEFAULT_NUM_PIXELS;
     state = LIGHT_OFF;
-    mode = MODE_IDLE; 
+    mode = MODE_IDLE;
 
-    debugData = nullptr; 
+    debugData = nullptr;
     debugModeActive = false;
     debugSelectedIndex = -1;
 
@@ -21,14 +21,13 @@ LightController::LightController()
 
 LightController::~LightController()
 {
-    
+
     if (strip != nullptr)
     {
         delete strip;
         strip = nullptr;
     }
 
-    
     if (debugData != nullptr)
     {
         delete[] debugData;
@@ -43,7 +42,6 @@ void LightController::begin(MQTTManager *mqttManager, int pixelCount)
 
     Serial.println("[LightController] Initializing...");
 
-    
     if (strip != nullptr)
     {
         delete strip;
@@ -53,14 +51,12 @@ void LightController::begin(MQTTManager *mqttManager, int pixelCount)
     strip->clear();
     strip->show();
 
-    
     if (debugData != nullptr)
     {
         delete[] debugData;
     }
     debugData = new PixelDebugData[numPixels];
 
-    
     for (int i = 0; i < numPixels; i++)
     {
         debugData[i].color = 0xFFFFFF;
@@ -78,14 +74,14 @@ void LightController::setActive(bool active)
 {
     if (!active)
     {
-        
+
         strip->clear();
         strip->show();
         Serial.println("[LightController] Controller deactivated");
     }
     else
     {
-        
+
         updateLEDs();
         Serial.println("[LightController] Controller activated");
     }
@@ -98,12 +94,10 @@ void LightController::setNumPixels(int count)
     {
         numPixels = count;
 
-        
         delete strip;
         strip = new Adafruit_NeoPixel(numPixels, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
         strip->begin();
 
-        
         delete[] debugData;
         debugData = new PixelDebugData[numPixels];
         for (int i = 0; i < numPixels; i++)
@@ -116,7 +110,6 @@ void LightController::setNumPixels(int count)
         Serial.print("[LightController] ✓ Pixel count updated to: ");
         Serial.println(numPixels);
 
-        
         if (state == LIGHT_ON)
         {
             updateLEDs();
@@ -131,7 +124,7 @@ void LightController::setNumPixels(int count)
 
 void LightController::loop()
 {
-    
+
     if (mode == MODE_IDLE && state == LIGHT_ON)
     {
         updateBreathingEffect();
@@ -140,7 +133,7 @@ void LightController::loop()
 
 void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int length)
 {
-    
+
     String message = "";
     for (unsigned int i = 0; i < length; i++)
     {
@@ -152,32 +145,29 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
     Serial.print("]: ");
     Serial.println(message);
 
-    
     String topicStr = String(topic);
 
-    
     if (topicStr.endsWith("/status"))
     {
         if (message == "on" || message == "ON" || message == "1")
         {
-            
+
             Serial.println("[LightController] Setting state to ON");
             state = LIGHT_ON;
             updateLEDs();
         }
         else if (message == "off" || message == "OFF" || message == "0")
         {
-            
+
             Serial.println("[LightController] Setting state to OFF");
             state = LIGHT_OFF;
             updateLEDs();
         }
     }
 
-    
     else if (topicStr.endsWith("/mode"))
     {
-        
+
         message.toLowerCase();
         if (message == "timer")
         {
@@ -194,8 +184,12 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
             breathDirection = 1;
             lastBreathUpdate = millis();
         }
+        else if (message == "music")
+        {
+            mode = MODE_MUSIC;
+        }
 
-        const char *modeNames[] = {"timer", "weather", "idle"};
+        const char *modeNames[] = {"timer", "weather", "idle", "music"};
         Serial.print("[LightController] Setting mode to: ");
         Serial.println(modeNames[mode]);
 
@@ -206,21 +200,20 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
         }
     }
 
-    
     else if (topicStr.endsWith("/debug/color"))
     {
-        
+
         int colonPos = message.indexOf(':');
         if (colonPos > 0)
         {
-            
+
             int index = message.substring(0, colonPos).toInt();
             String colorStr = message.substring(colonPos + 1);
             debugSetColor(index, colorStr);
         }
         else
         {
-            
+
             for (int i = 0; i < numPixels; i++)
             {
                 debugSetColor(i, message);
@@ -228,21 +221,20 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
         }
     }
 
-    
     else if (topicStr.endsWith("/debug/brightness"))
     {
-        
+
         int colonPos = message.indexOf(':');
         if (colonPos > 0)
         {
-            
+
             int index = message.substring(0, colonPos).toInt();
             int brightness = message.substring(colonPos + 1).toInt();
             debugSetBrightness(index, brightness);
         }
         else
         {
-            
+
             int brightness = message.toInt();
             for (int i = 0; i < numPixels; i++)
             {
@@ -251,10 +243,9 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
         }
     }
 
-    
     else if (topicStr.endsWith("/debug/index"))
     {
-        
+
         if (message == "clear" || message == "CLEAR")
         {
             clearDebugMode();
@@ -272,7 +263,6 @@ void LightController::turnOn()
     state = LIGHT_ON;
     updateLEDs();
 
-    
     if (mqtt && !suppressMqttFeedback)
     {
         mqtt->publishStatus("on");
@@ -285,7 +275,6 @@ void LightController::turnOff()
     state = LIGHT_OFF;
     updateLEDs();
 
-    
     if (mqtt && !suppressMqttFeedback)
     {
         mqtt->publishStatus("off");
@@ -309,7 +298,7 @@ void LightController::setMode(String modeName)
     else if (modeName == "idle")
     {
         mode = MODE_IDLE;
-        
+
         breathBrightness = 0;
         breathDirection = 1;
         lastBreathUpdate = millis();
@@ -326,16 +315,13 @@ void LightController::setMode(String modeName)
     Serial.print("[LightController] Mode set to: ");
     Serial.println(modeNames[mode]);
 
-    
     applyModeColor();
 
-    
     if (state == LIGHT_ON)
     {
         updateLEDs();
     }
 
-    
     if (mqtt && !suppressMqttFeedback)
     {
         mqtt->publishMode(modeNames[mode]);
@@ -349,20 +335,23 @@ void LightController::applyModeColor()
     switch (mode)
     {
     case MODE_TIMER:
-        modeColor = 0xFF0000; 
+        modeColor = 0xFF0000;
         Serial.println("[LightController] Mode color: RED");
         break;
     case MODE_WEATHER:
-        modeColor = 0x00FF00; 
+        modeColor = 0x00FF00;
         Serial.println("[LightController] Mode color: GREEN");
         break;
     case MODE_IDLE:
-        modeColor = 0x0000FF; 
+        modeColor = 0x0000FF;
         Serial.println("[LightController] Mode color: BLUE");
+        break;
+    case MODE_MUSIC:
+        modeColor = 0xFFFFFF;
+        Serial.println("[LightController] Mode color: WHITE (Music Mode)");
         break;
     }
 
-    
     if (strip != nullptr)
     {
         for (int i = 0; i < numPixels; i++)
@@ -380,12 +369,10 @@ void LightController::setPixel(int index, uint32_t pixelColor, int pixelBrightne
     if (strip == nullptr || index < 0 || index >= numPixels)
         return;
 
-    
     uint8_t r = (pixelColor >> 16) & 0xFF;
     uint8_t g = (pixelColor >> 8) & 0xFF;
     uint8_t b = pixelColor & 0xFF;
 
-    
     r = (r * pixelBrightness) / 255;
     g = (g * pixelBrightness) / 255;
     b = (b * pixelBrightness) / 255;
@@ -398,10 +385,8 @@ void LightController::debugSetColor(int index, String hexColor)
     if (index < 0 || index >= numPixels)
         return;
 
-    
     uint32_t color = hexToColor(hexColor);
 
-    
     debugData[index].color = color;
     debugData[index].isOverridden = true;
     debugModeActive = true;
@@ -411,7 +396,6 @@ void LightController::debugSetColor(int index, String hexColor)
     Serial.print(" color set to ");
     Serial.println(hexColor);
 
-    
     if (state == LIGHT_ON)
     {
         updateLEDs();
@@ -425,7 +409,6 @@ void LightController::debugSetBrightness(int index, int brightness)
 
     brightness = constrain(brightness, 0, 255);
 
-    
     debugData[index].brightness = brightness;
     debugData[index].isOverridden = true;
     debugModeActive = true;
@@ -435,7 +418,6 @@ void LightController::debugSetBrightness(int index, int brightness)
     Serial.print(" brightness set to ");
     Serial.println(brightness);
 
-    
     if (state == LIGHT_ON)
     {
         updateLEDs();
@@ -453,7 +435,6 @@ void LightController::clearDebugMode()
 {
     Serial.println("[LightController] DEBUG: Clearing debug mode");
 
-    
     for (int i = 0; i < numPixels; i++)
     {
         debugData[i].isOverridden = false;
@@ -461,10 +442,8 @@ void LightController::clearDebugMode()
     debugModeActive = false;
     debugSelectedIndex = -1;
 
-    
     applyModeColor();
 
-    
     if (state == LIGHT_ON)
     {
         updateLEDs();
@@ -473,13 +452,12 @@ void LightController::clearDebugMode()
 
 uint32_t LightController::hexToColor(String hexColor)
 {
-    
+
     if (hexColor.startsWith("#"))
     {
         hexColor = hexColor.substring(1);
     }
 
-    
     long number = strtol(hexColor.c_str(), NULL, 16);
     return (uint32_t)number;
 }
@@ -488,12 +466,10 @@ void LightController::updateBreathingEffect()
 {
     unsigned long now = millis();
 
-    
     if (now - lastBreathUpdate > 20)
     {
         breathBrightness += breathDirection * 2;
 
-        
         if (breathBrightness >= 255)
         {
             breathBrightness = 255;
@@ -505,7 +481,6 @@ void LightController::updateBreathingEffect()
             breathDirection = 1;
         }
 
-        
         updateLEDs();
 
         lastBreathUpdate = now;
@@ -524,15 +499,13 @@ void LightController::updateLEDs()
         return;
     }
 
-    
     for (int i = 0; i < numPixels; i++)
     {
         if (debugData[i].isOverridden)
         {
-            
+
             uint8_t brightness = debugData[i].brightness;
 
-            
             if (mode == MODE_IDLE)
             {
                 brightness = (brightness * breathBrightness) / 255;
@@ -542,22 +515,24 @@ void LightController::updateLEDs()
         }
         else
         {
-            
+
             uint32_t modeColor;
             switch (mode)
             {
             case MODE_TIMER:
-                modeColor = 0xFF0000; 
+                modeColor = 0xFF0000;
                 break;
             case MODE_WEATHER:
-                modeColor = 0x00FF00; 
+                modeColor = 0x00FF00;
                 break;
             case MODE_IDLE:
-                modeColor = 0x0000FF; 
+                modeColor = 0x0000FF;
+                break;
+            case MODE_MUSIC:
+                modeColor = 0xFFFFFF;
                 break;
             }
 
-            
             int brightness = (mode == MODE_IDLE) ? breathBrightness : 255;
             setPixel(i, modeColor, brightness);
         }
@@ -573,10 +548,8 @@ void LightController::publishState()
 
     Serial.println("[LightController] Publishing state...");
 
-    
     mqtt->publishStatus(state == LIGHT_ON ? "on" : "off");
 
-    
-    const char *modeNames[] = {"timer", "weather", "idle"};
+    const char *modeNames[] = {"timer", "weather", "idle", "music"};
     mqtt->publishMode(modeNames[mode]);
 }

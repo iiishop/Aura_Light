@@ -5,13 +5,14 @@
 #include "mqtt_manager.h"
 
 #define LUMINAIRE_NUM_LEDS 72
-#define LUMINAIRE_PAYLOAD_SIZE (LUMINAIRE_NUM_LEDS * 3) 
+#define LUMINAIRE_PAYLOAD_SIZE (LUMINAIRE_NUM_LEDS * 3)
 
 enum LuminaireMode
 {
     LUMI_MODE_TIMER = 0,
     LUMI_MODE_WEATHER = 1,
-    LUMI_MODE_IDLE = 2
+    LUMI_MODE_IDLE = 2,
+    LUMI_MODE_MUSIC = 3
 };
 
 enum LuminaireState
@@ -32,7 +33,6 @@ private:
     LuminaireState state;
     LuminaireMode mode;
 
-    
     void applyModeColor();
     void getRGBFromHex(const String &hexColor, int &r, int &g, int &b);
 
@@ -42,27 +42,21 @@ public:
     void setActive(bool active);
     bool getActive() const { return isActive; }
 
-    
     void handleMQTTMessage(char *topic, byte *payload, unsigned int length);
 
-    
     void sendRGBToPixel(int r, int g, int b, int pixel);
 
-    
     void sendRGBToAll(int r, int g, int b);
 
-    
     void clear();
 
-    
     int getNumLEDs() const { return LUMINAIRE_NUM_LEDS; }
 
-    
     bool isOn() const { return state == LUMI_ON; }
     LuminaireMode getMode() const { return mode; }
     const char *getModeString() const
     {
-        const char *modeNames[] = {"timer", "weather", "idle"};
+        const char *modeNames[] = {"timer", "weather", "idle", "music"};
         return modeNames[mode];
     }
     const char *getStateString() const

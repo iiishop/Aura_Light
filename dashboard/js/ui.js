@@ -13,9 +13,9 @@ class UIManager {
         };
     }
 
-    
+
     init() {
-        
+
         this.elements.connectionStatus = document.getElementById('connectionStatus');
         this.elements.statusIndicator = document.getElementById('statusIndicator');
         this.elements.statusText = document.getElementById('statusText');
@@ -23,20 +23,20 @@ class UIManager {
         this.elements.connectBtn = document.getElementById('connectBtn');
         this.elements.disconnectBtn = document.getElementById('disconnectBtn');
 
-        
+
         this.elements.lightStatus = document.getElementById('lightStatus');
         this.elements.turnOnBtn = document.getElementById('turnOnBtn');
         this.elements.turnOffBtn = document.getElementById('turnOffBtn');
 
-        
+
         this.elements.currentMode = document.getElementById('currentMode');
         this.elements.modeButtons = document.querySelectorAll('.mode-btn');
 
-        
+
         this.elements.currentController = document.getElementById('currentController');
         this.elements.controllerButtons = document.querySelectorAll('.controller-btn');
 
-        
+
         this.elements.refreshInfoBtn = document.getElementById('refreshInfoBtn');
         this.elements.infoWifiSSID = document.getElementById('infoWifiSSID');
         this.elements.infoWifiIP = document.getElementById('infoWifiIP');
@@ -48,10 +48,10 @@ class UIManager {
         this.elements.infoSystemUptime = document.getElementById('infoSystemUptime');
         this.elements.infoLocationCity = document.getElementById('infoLocationCity');
 
-        
+
         this.elements.lightVisualization = document.getElementById('lightVisualization');
 
-        
+
         this.elements.debugPixelIndex = document.getElementById('debugPixelIndex');
         this.elements.debugColor = document.getElementById('debugColor');
         this.elements.debugColorHex = document.getElementById('debugColorHex');
@@ -61,21 +61,21 @@ class UIManager {
         this.elements.clearDebugBtn = document.getElementById('clearDebugBtn');
         this.elements.debugStatus = document.getElementById('debugStatus');
 
-        
+
         this.elements.mqttLog = document.getElementById('mqttLog');
         this.elements.clearLogBtn = document.getElementById('clearLogBtn');
         this.elements.autoScrollLog = document.getElementById('autoScrollLog');
 
-        
+
         this.elements.usernameInput.value = 'ucfninn';
         console.log('[UI] Username set to: ucfninn');
 
         this.setupEventListeners();
     }
 
-    
+
     setupEventListeners() {
-        
+
         this.elements.debugColor.addEventListener('input', (e) => {
             this.elements.debugColorHex.value = e.target.value.toUpperCase();
         });
@@ -87,22 +87,22 @@ class UIManager {
             }
         });
 
-        
+
         this.elements.debugBrightness.addEventListener('input', (e) => {
             this.elements.brightnessValue.textContent = e.target.value;
         });
 
-        
+
         this.elements.clearLogBtn.addEventListener('click', () => {
             this.clearLog();
         });
 
-        
+
         this.elements.controllerButtons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 if (!btn.disabled) {
                     const controller = btn.dataset.controller;
-                    
+
                     if (this.onControllerSwitch) {
                         this.onControllerSwitch(controller);
                     }
@@ -111,7 +111,7 @@ class UIManager {
         });
     }
 
-    
+
     updateConnectionStatus(connected) {
         this.state.connected = connected;
 
@@ -122,7 +122,7 @@ class UIManager {
             this.elements.disconnectBtn.disabled = false;
             this.elements.usernameInput.disabled = true;
 
-            
+
             this.elements.refreshInfoBtn.disabled = false;
             this.elements.turnOnBtn.disabled = false;
             this.elements.turnOffBtn.disabled = false;
@@ -142,7 +142,7 @@ class UIManager {
             this.elements.disconnectBtn.disabled = true;
             this.elements.usernameInput.disabled = false;
 
-            
+
             this.elements.refreshInfoBtn.disabled = true;
             this.elements.turnOnBtn.disabled = true;
             this.elements.turnOffBtn.disabled = true;
@@ -157,7 +157,7 @@ class UIManager {
         }
     }
 
-    
+
     updateLightStatus(status) {
         console.log('[UI] updateLightStatus called with:', status);
         console.log('[UI] Status type:', typeof status);
@@ -178,7 +178,7 @@ class UIManager {
         this.updateVisualization();
     }
 
-    
+
     updateMode(mode) {
         console.log('[UI] updateMode called with:', mode);
         console.log('[UI] Mode type:', typeof mode);
@@ -186,12 +186,12 @@ class UIManager {
         this.state.currentMode = mode.toLowerCase();
         console.log('[UI] Current mode set to:', this.state.currentMode);
 
-        
+
         this.elements.currentMode.textContent = mode.toUpperCase();
         this.elements.currentMode.className = 'mode-badge ' + this.state.currentMode;
         console.log('[UI] ✓ Mode badge updated to:', mode.toUpperCase());
 
-        
+
         this.elements.modeButtons.forEach(btn => {
             if (btn.dataset.mode === this.state.currentMode) {
                 btn.classList.add('active');
@@ -204,16 +204,16 @@ class UIManager {
         this.updateVisualization();
     }
 
-    
+
     updateController(controller) {
         console.log('[UI] updateController called with:', controller);
 
         this.state.currentController = controller.toLowerCase();
 
-        
+
         this.elements.currentController.textContent = controller.toUpperCase();
 
-        
+
         this.elements.controllerButtons.forEach(btn => {
             if (btn.dataset.controller === this.state.currentController) {
                 btn.classList.add('active');
@@ -222,11 +222,11 @@ class UIManager {
             }
         });
 
-        
+
         if (this.state.currentController === 'luminaire') {
-            this.state.pixelCount = 72; 
+            this.state.pixelCount = 72;
         } else {
-            
+
             const localCount = this.elements.infoLighterNumber?.textContent;
             this.state.pixelCount = parseInt(localCount) || 8;
         }
@@ -235,11 +235,11 @@ class UIManager {
         console.log('[UI] ✓ Controller updated to:', controller);
     }
 
-    
+
     updateInfo(field, value) {
         console.log('[UI] updateInfo called - field:', field, 'value:', value);
 
-        
+
         const elementKey = field;
         console.log('[UI] Looking for element:', elementKey);
 
@@ -249,7 +249,7 @@ class UIManager {
             console.log('[UI] ✓ Element found, updating to:', value);
             element.textContent = value;
 
-            
+
             if (field === 'infoLighterNumber') {
                 this.state.pixelCount = parseInt(value) || 1;
                 this.updatePixelSelector();
@@ -261,7 +261,7 @@ class UIManager {
         }
     }
 
-    
+
     updatePixelSelector() {
         this.elements.debugPixelIndex.innerHTML = '';
         for (let i = 0; i < this.state.pixelCount; i++) {
@@ -272,14 +272,14 @@ class UIManager {
         }
     }
 
-    
+
     updateVisualization() {
         this.elements.lightVisualization.innerHTML = '';
 
-        
+
         this.elements.lightVisualization.setAttribute('data-pixel-count', this.state.pixelCount);
 
-        
+
         if (this.state.currentController === 'luminaire') {
             this.elements.lightVisualization.classList.add('luminaire-iframe');
             this.elements.lightVisualization.classList.remove('luminaire-grid');
@@ -293,7 +293,7 @@ class UIManager {
             iframe.setAttribute('allowfullscreen', '');
 
             this.elements.lightVisualization.appendChild(iframe);
-            return; 
+            return;
         } else {
             this.elements.lightVisualization.classList.remove('luminaire-grid');
             this.elements.lightVisualization.classList.remove('luminaire-iframe');
@@ -308,13 +308,20 @@ class UIManager {
             if (this.state.lightOn) {
                 pixel.classList.add('on');
 
-                
+
                 const color = this.getModeColor(this.state.currentMode);
                 pixel.style.backgroundColor = color;
-                pixel.style.color = color; 
-                pixel.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+                pixel.style.color = color;
 
-                
+
+                const isWhite = this.isWhiteColor(color);
+                if (isWhite) {
+                    pixel.classList.add('white-light');
+                } else {
+                    pixel.style.boxShadow = `0 0 15px ${color}, 0 0 30px ${color}`;
+                }
+
+
                 if (this.state.currentMode === 'idle') {
                     pixel.classList.add('breathing');
                 }
@@ -328,41 +335,63 @@ class UIManager {
         }
     }
 
-    
+
     updatePixelColor(index, color) {
         const pixel = this.elements.lightVisualization.querySelector(`[data-index="${index}"]`);
         if (pixel && this.state.lightOn) {
             pixel.style.backgroundColor = color;
-            pixel.style.color = color; 
-            pixel.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}`;
-            pixel.classList.remove('breathing'); 
-            pixel.classList.add('debug-mode'); 
+            pixel.style.color = color;
+
+
+            const isWhite = this.isWhiteColor(color);
+            if (isWhite) {
+                pixel.classList.add('white-light');
+
+                pixel.style.boxShadow = '';
+            } else {
+                pixel.classList.remove('white-light');
+                pixel.style.boxShadow = `0 0 20px ${color}, 0 0 40px ${color}, 0 0 60px ${color}`;
+            }
+
+            pixel.classList.remove('breathing');
+            pixel.classList.add('debug-mode');
             console.log('[UI] ✓ Pixel', index, 'color updated to', color);
         }
     }
 
-    
+
     updatePixelBrightness(index, brightness) {
         const pixel = this.elements.lightVisualization.querySelector(`[data-index="${index}"]`);
         if (pixel && this.state.lightOn) {
-            const opacity = Math.max(0.2, brightness / 255); 
+            const opacity = Math.max(0.2, brightness / 255);
             pixel.style.opacity = opacity;
-            pixel.classList.add('debug-mode'); 
+            pixel.classList.add('debug-mode');
             console.log('[UI] ✓ Pixel', index, 'brightness updated to', brightness, '(opacity:', opacity, ')');
         }
     }
 
-    
+
     getModeColor(mode) {
         const colors = {
             'timer': '#ff4444',
             'weather': '#44ff44',
-            'idle': '#4444ff'
+            'idle': '#4444ff',
+            'music': '#ffffff'
         };
         return colors[mode] || '#ffffff';
     }
 
-    
+
+    isWhiteColor(color) {
+        if (!color) return false;
+        const normalized = color.toLowerCase().replace(/\s/g, '');
+        return normalized === '#ffffff' ||
+            normalized === '#fff' ||
+            normalized === 'white' ||
+            normalized === 'rgb(255,255,255)';
+    }
+
+
     updateDebugStatus(active) {
         this.state.debugActive = active;
 
@@ -375,7 +404,7 @@ class UIManager {
         }
     }
 
-    
+
     addLog(type, topic, message) {
         const timestamp = new Date().toLocaleTimeString();
         const entry = document.createElement('div');
@@ -390,29 +419,29 @@ class UIManager {
 
         this.elements.mqttLog.appendChild(entry);
 
-        
+
         if (this.elements.autoScrollLog.checked) {
             this.elements.mqttLog.scrollTop = this.elements.mqttLog.scrollHeight;
         }
 
-        
+
         const maxLogs = 100;
         while (this.elements.mqttLog.children.length > maxLogs) {
             this.elements.mqttLog.removeChild(this.elements.mqttLog.firstChild);
         }
     }
 
-    
+
     clearLog() {
         this.elements.mqttLog.innerHTML = '';
     }
 
-    
+
     getUsername() {
         return this.elements.usernameInput.value.trim();
     }
 
-    
+
     getDebugSettings() {
         return {
             index: this.elements.debugPixelIndex.value,
@@ -421,7 +450,7 @@ class UIManager {
         };
     }
 
-    
+
     saveUsername(username) {
         localStorage.setItem('auralight_username', username);
     }

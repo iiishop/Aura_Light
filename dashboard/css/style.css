@@ -16,6 +16,7 @@
     --mode-timer: #e74c3c;         
     --mode-weather: #27ae60;       
     --mode-idle: #3498db;          
+    --mode-music: #FFFFFF;         
     
     
     --bg-primary: #fafafa;
@@ -518,36 +519,75 @@ body > * {
 .mode-badge {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 8px;
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 24px;
     font-size: 16px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     background: var(--bg-secondary);
     color: var(--text-primary);
-    box-shadow: var(--shadow-neumorphic);
-    transition: all var(--transition-normal);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
 }
 
 .mode-badge::before {
     content: '●';
     font-size: 20px;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
 }
 
 .mode-badge.timer {
-    background: rgba(231, 76, 60, 0.12);
-    color: var(--mode-timer);
+    background: linear-gradient(135deg, var(--mode-timer) 0%, #c0392b 100%);
+    color: white;
+    border-color: rgba(231, 76, 60, 0.5);
+}
+
+.mode-badge.timer::before {
+    color: white;
 }
 
 .mode-badge.weather {
-    background: rgba(39, 174, 96, 0.12);
-    color: var(--mode-weather);
+    background: linear-gradient(135deg, var(--mode-weather) 0%, #229954 100%);
+    color: white;
+    border-color: rgba(39, 174, 96, 0.5);
+}
+
+.mode-badge.weather::before {
+    color: white;
 }
 
 .mode-badge.idle {
-    background: rgba(52, 152, 219, 0.12);
-    color: var(--mode-idle);
+    background: linear-gradient(135deg, var(--mode-idle) 0%, #2874a6 100%);
+    color: white;
+    border-color: rgba(52, 152, 219, 0.5);
+}
+
+.mode-badge.idle::before {
+    color: white;
+}
+
+.mode-badge.music {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+    color: white;
+    border-color: rgba(149, 165, 166, 0.5);
+}
+
+.mode-badge.music::before {
+    color: white;
 }
 
 .mode-btn {
