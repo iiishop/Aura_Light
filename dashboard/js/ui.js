@@ -454,6 +454,97 @@ class UIManager {
     saveUsername(username) {
         localStorage.setItem('auralight_username', username);
     }
+
+
+    // MAX9814 音频监测
+    initAudioMonitor() {
+        this.elements.audioRawADC = document.getElementById('audioRawADC');
+        this.elements.audioVolume = document.getElementById('audioVolume');
+        this.elements.audioVULevel = document.getElementById('audioVULevel');
+        this.elements.audioStatus = document.getElementById('audioStatus');
+        this.elements.volumeBarFill = document.getElementById('volumeBarFill');
+        this.elements.minDbLabel = document.getElementById('minDbLabel');
+        this.elements.maxDbLabel = document.getElementById('maxDbLabel');
+        this.elements.spectrumBars = document.getElementById('spectrumBars');
+
+        // 创建 12 个频段柱
+        for (let i = 0; i < 12; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'spectrum-bar';
+            bar.id = `spectrumBar${i}`;
+            this.elements.spectrumBars.appendChild(bar);
+        }
+
+        console.log('[UI] Audio monitor initialized');
+    }
+
+
+    updateAudioMonitor(data) {
+        console.log('[UI] updateAudioMonitor called with:', data);
+
+        if (!this.elements.audioRawADC) {
+            console.log('[UI] Audio elements not initialized, initializing now...');
+            this.initAudioMonitor();
+        }
+
+        // 更新原始 ADC 值
+        if (data.raw !== undefined) {
+            console.log('[UI] Updating raw ADC:', data.raw);
+            this.elements.audioRawADC.textContent = data.raw;
+        }
+
+        // 更新音量（dB）
+        if (data.volume !== undefined) {
+            this.elements.audioVolume.textContent = `${data.volume.toFixed(1)} dB`;
+
+            // 更新音量条（假设范围 30-120 dB）
+            const minDb = data.minDb || 30;
+            const maxDb = data.maxDb || 120;
+            const percentage = Math.max(0, Math.min(100,
+                ((data.volume - minDb) / (maxDb - minDb)) * 100
+            ));
+            this.elements.volumeBarFill.style.width = `${percentage}%`;
+
+            // 更新范围标签
+            this.elements.minDbLabel.textContent = `${minDb} dB`;
+            this.elements.maxDbLabel.textContent = `${maxDb} dB`;
+        }
+
+        // 更新 VU 级别
+        if (data.vuLevel !== undefined) {
+            this.elements.audioVULevel.textContent = `${data.vuLevel} / 7`;
+        }
+
+        // 更新虚拟频谱
+        if (data.spectrum && Array.isArray(data.spectrum)) {
+            data.spectrum.forEach((value, index) => {
+                const bar = document.getElementById(`spectrumBar${index}`);
+                if (bar) {
+                    const height = Math.max(2, value * 100); // 最小 2%
+                    bar.style.height = `${height}%`;
+                }
+            });
+        }
+
+        // 更新状态指示器
+        const now = Date.now();
+        if (!this.audioLastUpdate || (now - this.audioLastUpdate) > 2000) {
+            this.elements.audioStatus.textContent = '⚪ No Signal';
+        } else if (data.raw !== undefined && data.raw < 5) {
+            this.elements.audioStatus.textContent = '🔴 Floating Pin (Check Connection!)';
+        } else if (data.volume < 35) {
+            this.elements.audioStatus.textContent = '🟢 Quiet';
+        } else if (data.volume < 70) {
+            this.elements.audioStatus.textContent = '🟡 Normal';
+        } else if (data.volume < 100) {
+            this.elements.audioStatus.textContent = '🟠 Loud';
+        } else {
+            this.elements.audioStatus.textContent = '🔴 Very Loud';
+        }
+
+        this.audioLastUpdate = now;
+    }
 }
 
 export default new UIManager();
+

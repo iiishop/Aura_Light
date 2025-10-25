@@ -4,6 +4,10 @@
 #include <Arduino.h>
 #include "mqtt_manager.h"
 
+// 前向声明
+class MusicMode;
+class AudioAnalyzer;
+
 #define LUMINAIRE_NUM_LEDS 72
 #define LUMINAIRE_PAYLOAD_SIZE (LUMINAIRE_NUM_LEDS * 3)
 
@@ -25,6 +29,9 @@ class LuminaireController
 {
 private:
     MQTTManager *mqtt;
+    MusicMode *musicMode;         // Music 模式引用
+    AudioAnalyzer *audioAnalyzer; // 音频分析器引用
+
     String lightId;
     String mqttTopic;
     byte RGBpayload[LUMINAIRE_PAYLOAD_SIZE];
@@ -34,6 +41,7 @@ private:
     LuminaireMode mode;
 
     void applyModeColor();
+    void updateMusicSpectrum(); // 新增：更新 Music 频谱显示
     void getRGBFromHex(const String &hexColor, int &r, int &g, int &b);
 
 public:
@@ -41,6 +49,12 @@ public:
     void begin(MQTTManager *mqttManager, const String &id);
     void setActive(bool active);
     bool getActive() const { return isActive; }
+
+    // 设置 Music 模式和音频分析器
+    void setMusicMode(MusicMode *music, AudioAnalyzer *audio);
+
+    // 主循环（用于 Music 模式更新）
+    void loop();
 
     void handleMQTTMessage(char *topic, byte *payload, unsigned int length);
 

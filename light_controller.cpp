@@ -1,8 +1,12 @@
 #include "light_controller.h"
+#include "music_mode.h"
+#include "audio_analyzer.h"
 
 LightController::LightController()
 {
     mqtt = nullptr;
+    musicMode = nullptr;
+    audioAnalyzer = nullptr;
     strip = nullptr;
     numPixels = DEFAULT_NUM_PIXELS;
     state = LIGHT_OFF;
@@ -70,6 +74,13 @@ void LightController::begin(MQTTManager *mqttManager, int pixelCount)
     Serial.println(NEOPIXEL_PIN);
 }
 
+void LightController::setMusicMode(MusicMode *music, AudioAnalyzer *audio)
+{
+    musicMode = music;
+    audioAnalyzer = audio;
+    Serial.println("[LightController] Music mode and audio analyzer configured");
+}
+
 void LightController::setActive(bool active)
 {
     if (!active)
@@ -124,10 +135,19 @@ void LightController::setNumPixels(int count)
 
 void LightController::loop()
 {
+    if (state != LIGHT_ON)
+    {
+        return; // 灯关闭时不更新
+    }
 
-    if (mode == MODE_IDLE && state == LIGHT_ON)
+    if (mode == MODE_IDLE)
     {
         updateBreathingEffect();
+    }
+    else if (mode == MODE_MUSIC)
+    {
+        // Music 模式：持续更新 VU 表
+        updateLEDs();
     }
 }
 
@@ -503,6 +523,14 @@ void LightController::updateLEDs()
         return;
     }
 
+    // Music 模式：使用 VU 表显示
+    if (mode == MODE_MUSIC && musicMode != nullptr && audioAnalyzer != nullptr)
+    {
+        updateMusicVU();
+        return;
+    }
+
+    // 其他模式：原有逻辑
     for (int i = 0; i < numPixels; i++)
     {
         if (debugData[i].isOverridden)
@@ -539,6 +567,80 @@ void LightController::updateLEDs()
 
             int brightness = (mode == MODE_IDLE) ? breathBrightness : 255;
             setPixel(i, modeColor, brightness);
+        }
+    }
+
+    strip->show();
+}
+
+void LightController::updateMusicVU()
+{
+    if (!musicMode || !audioAnalyzer)
+    {
+        return;
+    }
+
+    // 获取精确的音量级别（0.0 - 8.0，对应 8 个灯）
+    float exactLevel = audioAnalyzer->getVolume() * 8.0;
+    if (exactLevel > 8.0)
+        exactLevel = 8.0;
+
+    // 完全点亮的灯数量（向下取整）
+    int fullLights = (int)exactLevel;
+
+    // 部分点亮的灯亮度（0.0 - 1.0）
+    float partialBrightness = exactLevel - fullLights;
+
+    // 调试：每 2 秒打印一次
+    static unsigned long lastDebug = 0;
+    if (millis() - lastDebug > 2000)
+    {
+        Serial.print("[LightController] Exact Level: ");
+        Serial.print(exactLevel, 2);
+        Serial.print(" (Full: ");
+        Serial.print(fullLights);
+        Serial.print(", Partial: ");
+        Serial.print(partialBrightness, 2);
+        Serial.print("), Volume: ");
+        Serial.print(audioAnalyzer->getVolumeDecibel(), 1);
+        Serial.println(" dB");
+        lastDebug = millis();
+    }
+
+    // VU 表颜色方案（从低到高）
+    uint32_t vuColors[8] = {
+        0x00FF00, // 0: 绿色（安静）
+        0x33FF00, // 1: 黄绿
+        0x66FF00, // 2: 黄绿
+        0x99FF00, // 3: 黄色
+        0xFFFF00, // 4: 黄色
+        0xFFCC00, // 5: 橙色
+        0xFF6600, // 6: 橙红
+        0xFF0000  // 7: 红色（爆音）
+    };
+
+    for (int i = 0; i < numPixels && i < 8; i++)
+    {
+        if (debugData[i].isOverridden)
+        {
+            // DEBUG 模式优先
+            setPixel(i, debugData[i].color, debugData[i].brightness);
+        }
+        else if (i < fullLights)
+        {
+            // 完全点亮的灯：全亮度
+            setPixel(i, vuColors[i], 255);
+        }
+        else if (i == fullLights && partialBrightness > 0.05)
+        {
+            // 部分点亮的灯：使用亮度控制平滑过渡
+            uint8_t brightness = (uint8_t)(partialBrightness * 255);
+            setPixel(i, vuColors[i], brightness);
+        }
+        else
+        {
+            // 熄灭未达到的灯
+            setPixel(i, 0x000000, 0);
         }
     }
 

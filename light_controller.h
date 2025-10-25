@@ -5,6 +5,10 @@
 #include <Adafruit_NeoPixel.h>
 #include "mqtt_manager.h"
 
+// 前向声明
+class MusicMode;
+class AudioAnalyzer;
+
 #define NEOPIXEL_PIN 0
 #define DEFAULT_NUM_PIXELS 1
 #define MAX_NUM_PIXELS 16
@@ -34,6 +38,9 @@ class LightController
 {
 private:
     MQTTManager *mqtt;
+    MusicMode *musicMode;         // Music 模式引用
+    AudioAnalyzer *audioAnalyzer; // 音频分析器引用
+
     Adafruit_NeoPixel *strip;
     int numPixels;
 
@@ -51,6 +58,7 @@ private:
     bool suppressMqttFeedback;
 
     void updateLEDs();
+    void updateMusicVU(); // 新增：更新 Music VU 表显示
     void updateBreathingEffect();
     void applyModeColor();
     void setPixel(int index, uint32_t color, int brightness);
@@ -64,6 +72,9 @@ public:
     ~LightController();
 
     void begin(MQTTManager *mqttManager, int pixelCount = DEFAULT_NUM_PIXELS);
+
+    // 设置 Music 模式和音频分析器
+    void setMusicMode(MusicMode *music, AudioAnalyzer *audio);
 
     void setNumPixels(int count);
 

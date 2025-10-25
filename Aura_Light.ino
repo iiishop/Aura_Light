@@ -5,9 +5,11 @@
 #include "luminaire_controller.h"
 #include "weather_manager.h"
 #include "button_manager.h"
+#include "music_mode.h"
+#include "audio_analyzer.h"
 
 #define NUM_PIXELS 8
-#define SYSTEM_VERSION "2.1.0"
+#define SYSTEM_VERSION "2.2.0"
 #define LUMINAIRE_ID "16"
 
 enum ControllerMode
@@ -21,6 +23,8 @@ LightController lightControl;
 LuminaireController luminaireControl;
 WeatherManager weatherManager;
 ButtonManager buttonManager;
+MusicMode musicMode;
+AudioAnalyzer audioAnalyzer;
 String systemCity = "London";
 ControllerMode currentController = MODE_LOCAL;
 
@@ -77,6 +81,40 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       Serial.print(currentState);
       Serial.print(", Mode: ");
       Serial.println(currentMode);
+    }
+    return;
+  }
+
+  // 音频系统设置（全局，不分控制器）
+  if (topicStr.endsWith("/audio/volume_range"))
+  {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    String msg = String(message);
+
+    // 期望格式: "30,120" (minDb,maxDb)
+    int commaIndex = msg.indexOf(',');
+    if (commaIndex > 0)
+    {
+      float minDb = msg.substring(0, commaIndex).toFloat();
+      float maxDb = msg.substring(commaIndex + 1).toFloat();
+
+      if (minDb >= 20 && minDb < maxDb && maxDb <= 130)
+      {
+        audioAnalyzer.setVolumeRange(minDb, maxDb);
+        mqtt.publishInfo("audio/volume_range", msg.c_str(), true);
+
+        Serial.print("[Audio] Volume range updated: ");
+        Serial.print(minDb);
+        Serial.print(" - ");
+        Serial.print(maxDb);
+        Serial.println(" dB");
+      }
+      else
+      {
+        Serial.println("[Audio] Invalid volume range (must be 20-130 dB)");
+      }
     }
     return;
   }
@@ -141,6 +179,18 @@ void setup()
   luminaireControl.begin(&mqtt, LUMINAIRE_ID);
   luminaireControl.setActive(false);
 
+  // 初始化音频分析器
+  Serial.println("\n[System] Initializing audio analyzer (MAX9814 on A0)...");
+  audioAnalyzer.begin();
+
+  // 初始化 Music 模式
+  Serial.println("[System] Initializing music mode...");
+  musicMode.begin(&audioAnalyzer);
+
+  // 配置控制器的 Music 模式
+  lightControl.setMusicMode(&musicMode, &audioAnalyzer);
+  luminaireControl.setMusicMode(&musicMode, &audioAnalyzer);
+
   if (mqtt.isConnected())
   {
     Serial.println("\n[System] Publishing system information...");
@@ -161,7 +211,7 @@ void setup()
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
 
-  Serial.println("MQTT Control Commands (V2.1):");
+  Serial.println("MQTT Control Commands (V2.2):");
   Serial.println("  CONTROLLER:");
   Serial.println("    .../controller: local / luminaire");
   Serial.println();
@@ -169,7 +219,12 @@ void setup()
   Serial.println("    .../status: on / off");
   Serial.println();
   Serial.println("  MODE:");
-  Serial.println("    .../mode: timer (🔴) / weather (🟢) / idle (🔵) / music (⚪)");
+  Serial.println("    .../mode: timer (🔴) / weather (🟢) / idle (🔵) / music (🎵)");
+  Serial.println();
+  Serial.println("  MUSIC MODE (Audio Visualization):");
+  Serial.println("    Local: 8-level VU meter (volume bars)");
+  Serial.println("    Luminaire: 12x6 virtual spectrum (frequency bands)");
+  Serial.println("    Hardware: MAX9814 microphone on A0");
   Serial.println();
   Serial.println("  BUTTON (Hardware on Pin 1):");
   Serial.println("    Short press: Cycle modes (Timer→Weather→Idle→Music)");
@@ -215,14 +270,23 @@ void loop()
     lastWiFiCheck = millis();
   }
 
+  // MQTT 循环
   mqtt.loop();
 
-  lightControl.loop();
+  // 音频分析器循环（持续采样）
+  audioAnalyzer.loop();
 
+  // 控制器循环
+  lightControl.loop();
+  luminaireControl.loop(); // 新增：Luminaire Music 模式更新
+
+  // 天气管理器循环
   weatherManager.loop();
 
+  // 按钮管理器循环
   buttonManager.loop();
 
+  // 串口命令处理
   if (Serial.available() > 0)
   {
     String command = Serial.readStringUntil('\n');
@@ -258,5 +322,33 @@ void loop()
       mqtt.publishInfo_System_Uptime();
     }
     lastHeartbeat = millis();
+  }
+
+  // 发布音频数据到 Dashboard（每 200ms）
+  static unsigned long lastAudioPublish = 0;
+  if (millis() - lastAudioPublish > 200)
+  {
+    if (mqtt.isConnected())
+    {
+      // 获取音频数据
+      int rawADC = audioAnalyzer.getRawADC();
+      float volumeDb = audioAnalyzer.getVolumeDecibel();
+      int vuLevel = musicMode.getVULevel();
+
+      // 获取虚拟频谱数据
+      float spectrum[12];
+      musicMode.getSpectrumData(spectrum);
+
+      // 构建消息: "raw,volume,vuLevel,band0,band1,...,band11"
+      String audioMsg = String(rawADC) + "," + String(volumeDb, 1) + "," + String(vuLevel);
+      for (int i = 0; i < 12; i++)
+      {
+        audioMsg += "," + String(spectrum[i], 2);
+      }
+
+      // 发布到 MQTT
+      mqtt.publishInfo("audio/data", audioMsg.c_str(), false);
+    }
+    lastAudioPublish = millis();
   }
 }

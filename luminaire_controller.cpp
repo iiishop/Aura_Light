@@ -1,6 +1,14 @@
 #include "luminaire_controller.h"
+#include "music_mode.h"
+#include "audio_analyzer.h"
 
-LuminaireController::LuminaireController() : mqtt(nullptr), isActive(false), state(LUMI_OFF), mode(LUMI_MODE_IDLE)
+LuminaireController::LuminaireController()
+    : mqtt(nullptr),
+      musicMode(nullptr),
+      audioAnalyzer(nullptr),
+      isActive(false),
+      state(LUMI_OFF),
+      mode(LUMI_MODE_IDLE)
 {
 
     memset(RGBpayload, 0, LUMINAIRE_PAYLOAD_SIZE);
@@ -22,6 +30,22 @@ void LuminaireController::begin(MQTTManager *mqttManager, const String &id)
     Serial.print("[Luminaire] Number of LEDs: ");
     Serial.println(LUMINAIRE_NUM_LEDS);
     Serial.println("========================================\n");
+}
+
+void LuminaireController::setMusicMode(MusicMode *music, AudioAnalyzer *audio)
+{
+    musicMode = music;
+    audioAnalyzer = audio;
+    Serial.println("[Luminaire] Music mode and audio analyzer configured");
+}
+
+void LuminaireController::loop()
+{
+    // 只在 Music 模式且激活时更新
+    if (isActive && state == LUMI_ON && mode == LUMI_MODE_MUSIC && musicMode != nullptr && audioAnalyzer != nullptr)
+    {
+        updateMusicSpectrum();
+    }
 }
 
 void LuminaireController::setActive(bool active)
@@ -312,6 +336,96 @@ void LuminaireController::applyModeColor()
     }
 
     sendRGBToAll(r, g, b);
+}
+
+void LuminaireController::updateMusicSpectrum()
+{
+    // 72 灯布局：12 列（频段）× 6 行（高度）
+    // LED 索引映射（每列倒序）：
+    // 列 0: 5,4,3,2,1,0 (底→顶)
+    // 列 1: 11,10,9,8,7,6
+    // 列 2: 17,16,15,14,13,12
+    // ...
+    // 列 11: 71,70,69,68,67,66
+
+    float bands[12];
+    musicMode->getSpectrumData(bands);
+
+    // 行颜色（从底部到顶部的渐变）
+    // 底部（行 5）：绿色 → 顶部（行 0）：红色
+    uint8_t rowColors[6][3] = {
+        {255, 0, 0},   // 行 0（顶部）：红色（最响亮）
+        {255, 128, 0}, // 行 1：橙色
+        {255, 255, 0}, // 行 2：黄色
+        {128, 255, 0}, // 行 3：黄绿
+        {0, 255, 0},   // 行 4：绿色
+        {0, 255, 128}  // 行 5（底部）：青绿（最安静）
+    };
+
+    // 调试：每 5 秒打印一次频谱数据
+    static unsigned long lastDebug = 0;
+    if (millis() - lastDebug > 5000)
+    {
+        Serial.print("[Luminaire] Spectrum: ");
+        for (int i = 0; i < 12; i++)
+        {
+            Serial.print(bands[i], 2);
+            if (i < 11)
+                Serial.print(",");
+        }
+        Serial.println();
+        lastDebug = millis();
+    }
+
+    // 填充 12 个频段（列）
+    for (int col = 0; col < 12; col++)
+    {
+        // 计算这一列应该显示的精确高度（0.0 - 6.0）
+        float exactHeight = bands[col] * 6.0;
+        if (exactHeight > 6.0)
+            exactHeight = 6.0;
+
+        // 完全点亮的块数量（向下取整）
+        int fullBlocks = (int)exactHeight;
+
+        // 部分点亮的块亮度（0.0 - 1.0）
+        float partialBrightness = exactHeight - fullBlocks;
+
+        // 从底部（行 5）到顶部（行 0）填充
+        for (int row = 5; row >= 0; row--)
+        {
+            // 计算该列该行的 LED 索引
+            // 每列从底到顶：col*6+5, col*6+4, ..., col*6+0
+            int ledIndex = col * 6 + row;
+
+            // 计算当前块在这一列中的位置（0=底部，5=顶部）
+            int blockPosition = 5 - row;
+
+            if (blockPosition < fullBlocks)
+            {
+                // 完全点亮：使用该行的颜色，全亮度
+                sendRGBToPixel(
+                    rowColors[row][0],
+                    rowColors[row][1],
+                    rowColors[row][2],
+                    ledIndex);
+            }
+            else if (blockPosition == fullBlocks && partialBrightness > 0.05)
+            {
+                // 部分点亮：使用该行的颜色，按比例亮度
+                int r = (int)(rowColors[row][0] * partialBrightness);
+                int g = (int)(rowColors[row][1] * partialBrightness);
+                int b = (int)(rowColors[row][2] * partialBrightness);
+
+                sendRGBToPixel(r, g, b, ledIndex);
+            }
+            else
+            {
+                // 熄灭：完全关闭
+                sendRGBToPixel(0, 0, 0, ledIndex);
+            }
+        }
+    }
 }
 
 void LuminaireController::getRGBFromHex(const String &hexColor, int &r, int &g, int &b)

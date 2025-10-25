@@ -229,6 +229,50 @@
                 </section>
 
 
+                <!-- MAX9814 Audio Monitor -->
+                <section class="card audio-monitor-card">
+                    <h2>🎤 MAX9814 Audio Monitor</h2>
+                    <p class="audio-info">Real-time microphone status</p>
+
+                    <div class="audio-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Raw ADC:</span>
+                            <span class="stat-value" id="audioRawADC">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Volume:</span>
+                            <span class="stat-value" id="audioVolume">-- dB</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">VU Level:</span>
+                            <span class="stat-value" id="audioVULevel">-- / 7</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Status:</span>
+                            <span class="stat-value" id="audioStatus">⚪ Waiting...</span>
+                        </div>
+                    </div>
+
+                    <div class="volume-bar-container">
+                        <label>Volume Bar:</label>
+                        <div class="volume-bar">
+                            <div class="volume-bar-fill" id="volumeBarFill" style="width: 0%"></div>
+                        </div>
+                        <div class="volume-range">
+                            <span id="minDbLabel">30 dB</span>
+                            <span id="maxDbLabel">120 dB</span>
+                        </div>
+                    </div>
+
+                    <div class="spectrum-preview">
+                        <label>Virtual Spectrum (12 Bands):</label>
+                        <div class="spectrum-bars" id="spectrumBars">
+                            <!-- 将由 JS 生成 12 个频段柱 -->
+                        </div>
+                    </div>
+                </section>
+
+
                 <section class="card log-card">
                     <h2>MQTT Messages</h2>
                     <div class="log-controls">
