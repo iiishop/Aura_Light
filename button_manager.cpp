@@ -7,13 +7,13 @@
 #define MODE_LOCAL 0
 #define MODE_LUMINAIRE 1
 
-    ButtonManager::ButtonManager()
+ButtonManager::ButtonManager()
     : mqtt(nullptr),
       localController(nullptr),
       luminaireController(nullptr),
       currentMode(nullptr),
-      lastButtonState(LOW),  // NC按钮初始状态为LOW（释放）
-      buttonState(LOW),      // NC按钮初始状态为LOW（释放）
+      lastButtonState(LOW), // NC按钮初始状态为LOW（释放）
+      buttonState(LOW),     // NC按钮初始状态为LOW（释放）
       lastDebounceTime(0),
       buttonPressTime(0),
       buttonPressed(false),
@@ -36,10 +36,10 @@ void ButtonManager::begin(MQTTManager *mqttManager,
     // - 未按时：LOW (导通到GND)
     // - 按下时：HIGH (断开)
     pinMode(BUTTON_PIN, INPUT); // 使用外部上拉（按钮模块自带）
-    
+
     // 等待引脚稳定
     delay(100);
-    
+
     // 读取初始状态
     int initialState = digitalRead(BUTTON_PIN);
     Serial.print("[Button] Initial pin state: ");
