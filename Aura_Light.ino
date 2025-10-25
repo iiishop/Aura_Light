@@ -4,6 +4,7 @@
 #include "light_controller.h"
 #include "luminaire_controller.h"
 #include "weather_manager.h"
+#include "button_manager.h"
 
 #define NUM_PIXELS 8           
 #define SYSTEM_VERSION "2.1.0" 
@@ -19,6 +20,7 @@ MQTTManager mqtt;
 LightController lightControl;
 LuminaireController luminaireControl;
 WeatherManager weatherManager;
+ButtonManager buttonManager;
 String systemCity = "London";                  
 ControllerMode currentController = MODE_LOCAL; 
 
@@ -171,6 +173,10 @@ void setup()
   Serial.println("\n[System] Initializing weather manager...");
   weatherManager.begin(&mqtt, systemCity);
 
+  
+  Serial.println("\n[System] Initializing button manager on pin 1...");
+  buttonManager.begin(&mqtt, &lightControl, &luminaireControl, (int*)&currentController);
+
   Serial.println("\n========================================");
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
@@ -184,7 +190,11 @@ void setup()
   Serial.println("    .../status: on / off");
   Serial.println();
   Serial.println("  MODE:");
-  Serial.println("    .../mode: timer (🔴) / weather (🟢) / idle (🔵)");
+  Serial.println("    .../mode: timer (🔴) / weather (🟢) / idle (🔵) / music (⚪)");
+  Serial.println();
+  Serial.println("  BUTTON (Hardware on Pin 1):");
+  Serial.println("    Short press: Cycle modes (Timer→Weather→Idle→Music)");
+  Serial.println("    Long press (2s): Toggle light ON/OFF");
   Serial.println();
   Serial.println("  DEBUG:");
   Serial.println("    .../debug/color: 0:#FF0000 (pixel 0 = red)");
@@ -235,6 +245,9 @@ void loop()
 
   
   weatherManager.loop();
+
+  
+  buttonManager.loop();
 
   
   if (Serial.available() > 0)

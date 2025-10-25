@@ -303,6 +303,10 @@ void LightController::setMode(String modeName)
         breathDirection = 1;
         lastBreathUpdate = millis();
     }
+    else if (modeName == "music")
+    {
+        mode = MODE_MUSIC;
+    }
     else
     {
         Serial.print("[LightController] ⚠ Unknown mode: ");
@@ -311,7 +315,7 @@ void LightController::setMode(String modeName)
         return;
     }
 
-    const char *modeNames[] = {"timer", "weather", "idle"};
+    const char *modeNames[] = {"timer", "weather", "idle", "music"};
     Serial.print("[LightController] Mode set to: ");
     Serial.println(modeNames[mode]);
 
