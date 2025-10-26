@@ -73,19 +73,15 @@
                     </div>
                     <div class="mode-buttons">
                         <button class="mode-btn mode-timer" data-mode="timer" disabled>
-                            <span class="mode-icon">⏱️</span>
                             <span>Timer</span>
                         </button>
                         <button class="mode-btn mode-weather" data-mode="weather" disabled>
-                            <span class="mode-icon">🌤️</span>
                             <span>Weather</span>
                         </button>
                         <button class="mode-btn mode-idle" data-mode="idle" disabled>
-                            <span class="mode-icon">💤</span>
                             <span>Idle</span>
                         </button>
                         <button class="mode-btn mode-music" data-mode="music" disabled>
-                            <span class="mode-icon">🎵</span>
                             <span>Music</span>
                         </button>
                     </div>
@@ -231,7 +227,7 @@
 
                 <!-- MAX9814 Audio Monitor -->
                 <section class="card audio-monitor-card">
-                    <h2>🎤 MAX9814 Audio Monitor</h2>
+                    <h2>MAX9814 Audio Monitor</h2>
                     <p class="audio-info">Real-time microphone status</p>
 
                     <div class="audio-stats">
@@ -249,7 +245,7 @@
                         </div>
                         <div class="stat-item">
                             <span class="stat-label">Status:</span>
-                            <span class="stat-value" id="audioStatus">⚪ Waiting...</span>
+                            <span class="stat-value" id="audioStatus">Waiting...</span>
                         </div>
                     </div>
 
@@ -269,6 +265,27 @@
                         <div class="spectrum-bars" id="spectrumBars">
                             <!-- 将由 JS 生成 12 个频段柱 -->
                         </div>
+                    </div>
+
+                    <!-- 音量范围设置 -->
+                    <div class="volume-range-settings">
+                        <h3>Volume Range Settings</h3>
+                        <div class="range-setting-row">
+                            <div class="range-input-group">
+                                <label for="minDbInput">Min (dB):</label>
+                                <input type="number" id="minDbInput" min="20" max="100" value="30" step="5">
+                            </div>
+                            <div class="range-input-group">
+                                <label for="maxDbInput">Max (dB):</label>
+                                <input type="number" id="maxDbInput" min="50" max="130" value="120" step="5">
+                            </div>
+                        </div>
+                        <div class="range-presets">
+                            <button class="btn btn-sm preset-btn" data-range="20,100">Quiet (20-100)</button>
+                            <button class="btn btn-sm preset-btn" data-range="30,120">Normal (30-120)</button>
+                            <button class="btn btn-sm preset-btn" data-range="40,130">Loud (40-130)</button>
+                        </div>
+                        <button id="applyVolumeRangeBtn" class="btn btn-primary">Apply Range</button>
                     </div>
                 </section>
 

@@ -580,6 +580,34 @@ void LightController::updateMusicVU()
         return;
     }
 
+    // 检查音量是否低于下限，如果是则全灭
+    float volumeDb = audioAnalyzer->getVolumeDecibel();
+    float minDb, maxDb;
+    audioAnalyzer->getVolumeRange(minDb, maxDb);
+
+    if (volumeDb <= minDb)
+    {
+        // 音量低于下限，全部熄灭
+        for (int i = 0; i < numPixels && i < 8; i++)
+        {
+            setPixel(i, 0x000000, 0);
+        }
+        strip->show();
+
+        // 调试输出
+        static unsigned long lastDebug = 0;
+        if (millis() - lastDebug > 3000)
+        {
+            Serial.print("[LightController] Volume below threshold: ");
+            Serial.print(volumeDb, 1);
+            Serial.print(" dB <= ");
+            Serial.print(minDb, 1);
+            Serial.println(" dB (All LEDs OFF)");
+            lastDebug = millis();
+        }
+        return;
+    }
+
     // 获取精确的音量级别（0.0 - 8.0，对应 8 个灯）
     float exactLevel = audioAnalyzer->getVolume() * 8.0;
     if (exactLevel > 8.0)
@@ -592,8 +620,8 @@ void LightController::updateMusicVU()
     float partialBrightness = exactLevel - fullLights;
 
     // 调试：每 2 秒打印一次
-    static unsigned long lastDebug = 0;
-    if (millis() - lastDebug > 2000)
+    static unsigned long lastDebug2 = 0;
+    if (millis() - lastDebug2 > 2000)
     {
         Serial.print("[LightController] Exact Level: ");
         Serial.print(exactLevel, 2);
@@ -602,9 +630,9 @@ void LightController::updateMusicVU()
         Serial.print(", Partial: ");
         Serial.print(partialBrightness, 2);
         Serial.print("), Volume: ");
-        Serial.print(audioAnalyzer->getVolumeDecibel(), 1);
+        Serial.print(volumeDb, 1);
         Serial.println(" dB");
-        lastDebug = millis();
+        lastDebug2 = millis();
     }
 
     // VU 表颜色方案（从低到高）

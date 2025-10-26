@@ -285,11 +285,38 @@ class AuraLightDashboard {
         });
 
 
+        // 音量范围设置
+        ui.elements.applyVolumeRangeBtn.addEventListener('click', () => {
+            this.applyVolumeRange();
+        });
+
+
         ui.elements.usernameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 this.connect();
             }
         });
+    }
+
+
+    applyVolumeRange() {
+        const range = ui.getVolumeRange();
+
+        if (range.minDb >= range.maxDb) {
+            alert('Min dB must be less than Max dB!');
+            return;
+        }
+
+        if (range.minDb < 20 || range.maxDb > 130) {
+            alert('Valid range: 20-130 dB');
+            return;
+        }
+
+        const message = `${range.minDb},${range.maxDb}`;
+        if (mqttManager.publish('/audio/volume_range', message)) {
+            ui.addLog('sent', 'audio/volume_range', message);
+            console.log('[App] Volume range updated:', range);
+        }
     }
 
 

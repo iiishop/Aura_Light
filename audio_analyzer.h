@@ -42,10 +42,10 @@ public:
     void getVolumeRange(float &minDb, float &maxDb) const;
 
     // 获取音量数据
-    int getRawADC() const { return lastRawADC; }       // 原始 ADC 值（0-1023）
-    float getVolume() const { return smoothedVolume; } // 0.0 - 1.0
-    float getVolumeDecibel() const;                    // dB 值
-    int getVolumeLevel(int maxLevels) const;           // 离散级别（如 0-7）
+    int getRawADC() const { return lastRawADC; } // 原始 ADC 值（0-1023）
+    float getVolume() const;                     // 基于用户设置范围的归一化音量（0.0 - 1.0）
+    float getVolumeDecibel() const;              // 真实的绝对分贝值
+    int getVolumeLevel(int maxLevels) const;     // 离散级别（如 0-7）
 
     // 获取虚拟频段数据（用于 Luminaire）
     void getVirtualBands(float bands[12]) const;

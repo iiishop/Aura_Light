@@ -560,19 +560,21 @@
 
 
 /* MAX9814 Audio Monitor */
+/* 使用淡雅的蓝色背景，与其他卡片区分但不突兀 */
 .audio-monitor-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    border: 2px solid #90caf9;
 }
 
 .audio-monitor-card h2 {
     margin-bottom: 8px;
+    color: var(--primary-color);
 }
 
 .audio-info {
-    opacity: 0.9;
     margin-bottom: 20px;
     font-size: 14px;
+    color: var(--text-secondary);
 }
 
 .audio-stats {
@@ -583,18 +585,19 @@
 }
 
 .stat-item {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.7);
     padding: 12px;
     border-radius: 8px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border: 1px solid rgba(144, 202, 249, 0.5);
     backdrop-filter: blur(10px);
 }
 
 .stat-label {
     font-size: 13px;
-    opacity: 0.9;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -602,6 +605,7 @@
     font-size: 16px;
     font-weight: 700;
     font-family: 'Courier New', monospace;
+    color: var(--primary-color);
 }
 
 .volume-bar-container {
@@ -618,11 +622,11 @@
 .volume-bar {
     width: 100%;
     height: 24px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.5);
     border-radius: 12px;
     overflow: hidden;
     position: relative;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(144, 202, 249, 0.5);
 }
 
 .volume-bar-fill {
@@ -638,7 +642,7 @@
     justify-content: space-between;
     margin-top: 4px;
     font-size: 12px;
-    opacity: 0.8;
+    color: var(--text-secondary);
 }
 
 .spectrum-preview {
@@ -650,6 +654,7 @@
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 500;
+    color: var(--primary-color);
 }
 
 .spectrum-bars {
@@ -658,16 +663,113 @@
     align-items: flex-end;
     height: 80px;
     gap: 4px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.5);
     padding: 8px;
     border-radius: 8px;
+    border: 1px solid rgba(144, 202, 249, 0.5);
 }
 
 .spectrum-bar {
     flex: 1;
-    background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    background: linear-gradient(180deg, #2196f3 0%, #64b5f6 100%);
     border-radius: 4px 4px 0 0;
     min-height: 2px;
     transition: height 0.15s ease-out;
 }
 
+/* Volume Range Settings */
+.volume-range-settings {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(144, 202, 249, 0.3);
+}
+
+.volume-range-settings h3 {
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.range-setting-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.range-input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.range-input-group label {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.range-input-group input[type="number"] {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.range-input-group input[type="number"]:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.range-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.preset-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.preset-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+#applyVolumeRangeBtn {
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* Audio Status Indicators - 使用颜色代替 emoji */
+#audioStatus {
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* 默认状态 - 灰色 */
+#audioStatus {
+    background: rgba(158, 158, 158, 0.2);
+    color: #616161;
+}
+
+/* 当包含特定文字时应用不同颜色 */
+.stat-value[id="audioStatus"] {
+    transition: all 0.3s ease;
+}

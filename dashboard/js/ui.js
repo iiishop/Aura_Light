@@ -467,6 +467,11 @@ class UIManager {
         this.elements.maxDbLabel = document.getElementById('maxDbLabel');
         this.elements.spectrumBars = document.getElementById('spectrumBars');
 
+        // 音量范围设置
+        this.elements.minDbInput = document.getElementById('minDbInput');
+        this.elements.maxDbInput = document.getElementById('maxDbInput');
+        this.elements.applyVolumeRangeBtn = document.getElementById('applyVolumeRangeBtn');
+
         // 创建 12 个频段柱
         for (let i = 0; i < 12; i++) {
             const bar = document.createElement('div');
@@ -474,6 +479,15 @@ class UIManager {
             bar.id = `spectrumBar${i}`;
             this.elements.spectrumBars.appendChild(bar);
         }
+
+        // 设置预设按钮事件
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const range = e.target.dataset.range.split(',');
+                this.elements.minDbInput.value = range[0];
+                this.elements.maxDbInput.value = range[1];
+            });
+        });
 
         console.log('[UI] Audio monitor initialized');
     }
@@ -487,6 +501,15 @@ class UIManager {
             this.initAudioMonitor();
         }
 
+        // 更新音量范围设置（如果Arduino发送了范围更新）
+        if (data.minDb !== undefined && data.maxDb !== undefined) {
+            console.log('[UI] Updating volume range inputs:', data.minDb, '-', data.maxDb);
+            this.elements.minDbInput.value = data.minDb;
+            this.elements.maxDbInput.value = data.maxDb;
+            this.elements.minDbLabel.textContent = `${data.minDb} dB`;
+            this.elements.maxDbLabel.textContent = `${data.maxDb} dB`;
+        }
+
         // 更新原始 ADC 值
         if (data.raw !== undefined) {
             console.log('[UI] Updating raw ADC:', data.raw);
@@ -497,17 +520,13 @@ class UIManager {
         if (data.volume !== undefined) {
             this.elements.audioVolume.textContent = `${data.volume.toFixed(1)} dB`;
 
-            // 更新音量条（假设范围 30-120 dB）
-            const minDb = data.minDb || 30;
-            const maxDb = data.maxDb || 120;
+            // 更新音量条（使用当前的范围设置）
+            const minDb = parseInt(this.elements.minDbInput.value) || 30;
+            const maxDb = parseInt(this.elements.maxDbInput.value) || 120;
             const percentage = Math.max(0, Math.min(100,
                 ((data.volume - minDb) / (maxDb - minDb)) * 100
             ));
             this.elements.volumeBarFill.style.width = `${percentage}%`;
-
-            // 更新范围标签
-            this.elements.minDbLabel.textContent = `${minDb} dB`;
-            this.elements.maxDbLabel.textContent = `${maxDb} dB`;
         }
 
         // 更新 VU 级别
@@ -528,21 +547,43 @@ class UIManager {
 
         // 更新状态指示器
         const now = Date.now();
+        const statusElement = this.elements.audioStatus;
+
         if (!this.audioLastUpdate || (now - this.audioLastUpdate) > 2000) {
-            this.elements.audioStatus.textContent = '⚪ No Signal';
+            statusElement.textContent = 'No Signal';
+            statusElement.style.background = 'rgba(158, 158, 158, 0.2)';
+            statusElement.style.color = '#616161';
         } else if (data.raw !== undefined && data.raw < 5) {
-            this.elements.audioStatus.textContent = '🔴 Floating Pin (Check Connection!)';
+            statusElement.textContent = 'ERROR: Floating Pin';
+            statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+            statusElement.style.color = '#d32f2f';
         } else if (data.volume < 35) {
-            this.elements.audioStatus.textContent = '🟢 Quiet';
+            statusElement.textContent = 'Quiet';
+            statusElement.style.background = 'rgba(76, 175, 80, 0.2)';
+            statusElement.style.color = '#388e3c';
         } else if (data.volume < 70) {
-            this.elements.audioStatus.textContent = '🟡 Normal';
+            statusElement.textContent = 'Normal';
+            statusElement.style.background = 'rgba(33, 150, 243, 0.2)';
+            statusElement.style.color = '#1976d2';
         } else if (data.volume < 100) {
-            this.elements.audioStatus.textContent = '🟠 Loud';
+            statusElement.textContent = 'Loud';
+            statusElement.style.background = 'rgba(255, 152, 0, 0.2)';
+            statusElement.style.color = '#f57c00';
         } else {
-            this.elements.audioStatus.textContent = '🔴 Very Loud';
+            statusElement.textContent = 'Very Loud';
+            statusElement.style.background = 'rgba(244, 67, 54, 0.2)';
+            statusElement.style.color = '#d32f2f';
         }
 
         this.audioLastUpdate = now;
+    }
+
+
+    getVolumeRange() {
+        return {
+            minDb: parseInt(this.elements.minDbInput.value),
+            maxDb: parseInt(this.elements.maxDbInput.value)
+        };
     }
 }
 

@@ -37,7 +37,7 @@ String MQTTManager::generateClientID()
 
 void MQTTManager::begin()
 {
-    
+
     clientID = generateClientID();
 
     Serial.println("\n========================================");
@@ -53,11 +53,9 @@ void MQTTManager::begin()
     Serial.println(MQTT_USERNAME);
     Serial.println("========================================\n");
 
-    
     mqttClient->setServer(MQTT_SERVER, MQTT_PORT);
     mqttClient->setKeepAlive(MQTT_KEEPALIVE);
 
-    
     mqttClient->setBufferSize(512);
 }
 
@@ -65,47 +63,42 @@ bool MQTTManager::connect()
 {
     Serial.print("[MQTT] Connecting to broker...");
 
-    
     bool connected = mqttClient->connect(
         clientID.c_str(),
         MQTT_USERNAME,
         MQTT_PASSWORD,
-        TOPIC_STATUS, 
-        0,            
-        true,         
-        "offline"     
-    );
+        TOPIC_STATUS,
+        0,
+        true,
+        "offline");
 
     if (connected)
     {
         Serial.println(" ✓ Connected");
 
-        
         publishStatus("online");
 
-        
         Serial.println("[MQTT] Subscribing to topics...");
 
-        subscribe(TOPIC_STATUS);
-        Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(TOPIC_STATUS);
+        // 订阅控制主题（不包括 /info/ 主题，避免接收自己发布的消息）
+        String baseTopic = String(TOPIC_BASE);
 
-        subscribe(TOPIC_MODE);
-        Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(TOPIC_MODE);
+        // 订阅状态和模式
+        subscribe((baseTopic + "/status").c_str());
+        subscribe((baseTopic + "/mode").c_str());
+        subscribe((baseTopic + "/controller").c_str());
 
-        
-        subscribe(TOPIC_DEBUG_COLOR);
-        Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(TOPIC_DEBUG_COLOR);
+        // 订阅调试主题
+        subscribe((baseTopic + "/debug/#").c_str());
 
-        subscribe(TOPIC_DEBUG_BRIGHTNESS);
-        Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(TOPIC_DEBUG_BRIGHTNESS);
+        // 订阅音频控制主题（不包括 /info/audio/）
+        subscribe((baseTopic + "/audio/volume_range").c_str());
 
-        subscribe(TOPIC_DEBUG_INDEX);
+        // 订阅刷新请求
+        subscribe((baseTopic + "/refresh").c_str());
+
         Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(TOPIC_DEBUG_INDEX);
+        Serial.println(baseTopic + "/{status,mode,controller,debug/#,audio/volume_range,refresh}");
 
         Serial.println("[MQTT] ========================================");
         Serial.println("[MQTT] MQTT connection established successfully");
@@ -116,7 +109,6 @@ bool MQTTManager::connect()
         Serial.print(" ✗ Failed, rc=");
         Serial.println(mqttClient->state());
 
-        
         switch (mqttClient->state())
         {
         case -4:
@@ -159,7 +151,6 @@ bool MQTTManager::reconnect()
 {
     unsigned long now = millis();
 
-    
     if (now - lastReconnectAttempt < RECONNECT_INTERVAL)
     {
         return false;
@@ -301,31 +292,31 @@ void MQTTManager::setCallback(void (*callback)(char *, byte *, unsigned int))
 
 bool MQTTManager::publishStatus(const char *status)
 {
-    return publish(TOPIC_STATUS, status, true); 
+    return publish(TOPIC_STATUS, status, true);
 }
 
 bool MQTTManager::publishMode(const char *mode)
 {
-    return publish(TOPIC_MODE, mode, true); 
+    return publish(TOPIC_MODE, mode, true);
 }
 
 bool MQTTManager::publishInfo_WiFi_SSID()
 {
     String ssid = WiFi.SSID();
-    return publish(TOPIC_INFO_WIFI_SSID, ssid.c_str(), true); 
+    return publish(TOPIC_INFO_WIFI_SSID, ssid.c_str(), true);
 }
 
 bool MQTTManager::publishInfo_WiFi_IP()
 {
     String ip = WiFi.localIP().toString();
-    return publish(TOPIC_INFO_WIFI_IP, ip.c_str(), true); 
+    return publish(TOPIC_INFO_WIFI_IP, ip.c_str(), true);
 }
 
 bool MQTTManager::publishInfo_WiFi_RSSI()
 {
     char buffer[16];
     snprintf(buffer, sizeof(buffer), "%d dBm", WiFi.RSSI());
-    return publish(TOPIC_INFO_WIFI_RSSI, buffer, true); 
+    return publish(TOPIC_INFO_WIFI_RSSI, buffer, true);
 }
 
 bool MQTTManager::publishInfo_WiFi_MAC()
@@ -335,47 +326,47 @@ bool MQTTManager::publishInfo_WiFi_MAC()
     char buffer[24];
     snprintf(buffer, sizeof(buffer), "%02X:%02X:%02X:%02X:%02X:%02X",
              mac[5], mac[4], mac[3], mac[2], mac[1], mac[0]);
-    return publish(TOPIC_INFO_WIFI_MAC, buffer, true); 
+    return publish(TOPIC_INFO_WIFI_MAC, buffer, true);
 }
 
 bool MQTTManager::publishInfo_Lighter_Number(int count)
 {
     char buffer[8];
     snprintf(buffer, sizeof(buffer), "%d", count);
-    return publish(TOPIC_INFO_LIGHTER_NUMBER, buffer, true); 
+    return publish(TOPIC_INFO_LIGHTER_NUMBER, buffer, true);
 }
 
 bool MQTTManager::publishInfo_Lighter_Pin(int pin)
 {
     char buffer[8];
     snprintf(buffer, sizeof(buffer), "%d", pin);
-    return publish(TOPIC_INFO_LIGHTER_PIN, buffer, true); 
+    return publish(TOPIC_INFO_LIGHTER_PIN, buffer, true);
 }
 
 bool MQTTManager::publishInfo_System_Version(const char *version)
 {
-    return publish(TOPIC_INFO_SYSTEM_VERSION, version, true); 
+    return publish(TOPIC_INFO_SYSTEM_VERSION, version, true);
 }
 
 bool MQTTManager::publishInfo_System_Uptime()
 {
-    unsigned long uptime = millis() / 1000; 
+    unsigned long uptime = millis() / 1000;
     char buffer[32];
     unsigned long hours = uptime / 3600;
     unsigned long minutes = (uptime % 3600) / 60;
     unsigned long seconds = uptime % 60;
     snprintf(buffer, sizeof(buffer), "%luh %lum %lus", hours, minutes, seconds);
-    return publish(TOPIC_INFO_SYSTEM_UPTIME, buffer, true); 
+    return publish(TOPIC_INFO_SYSTEM_UPTIME, buffer, true);
 }
 
 bool MQTTManager::publishInfo_Location_City(const char *city)
 {
-    return publish(TOPIC_INFO_LOCATION_CITY, city, true); 
+    return publish(TOPIC_INFO_LOCATION_CITY, city, true);
 }
 
 bool MQTTManager::publishInfo(const char *subTopic, const char *payload, bool retained)
 {
-    
+
     String fullTopic = String(TOPIC_BASE) + "/info/" + String(subTopic);
     return publish(fullTopic.c_str(), payload, retained);
 }

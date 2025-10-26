@@ -219,7 +219,7 @@ void setup()
   Serial.println("    .../status: on / off");
   Serial.println();
   Serial.println("  MODE:");
-  Serial.println("    .../mode: timer (🔴) / weather (🟢) / idle (🔵) / music (🎵)");
+  Serial.println("    .../mode: timer / weather / idle / music");
   Serial.println();
   Serial.println("  MUSIC MODE (Audio Visualization):");
   Serial.println("    Local: 8-level VU meter (volume bars)");
