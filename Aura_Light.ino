@@ -129,6 +129,84 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
   }
 }
 
+// 开机进度条 - 基于启动阶段
+Adafruit_NeoPixel *bootStrip = nullptr;
+int currentBootProgress = 0;
+const int TOTAL_BOOT_STAGES = NUM_PIXELS; // 使用灯珠数量作为总阶段数
+
+void initBootProgressBar()
+{
+  // 创建 NeoPixel 对象用于开机动画
+  bootStrip = new Adafruit_NeoPixel(NUM_PIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+  bootStrip->begin();
+  bootStrip->setBrightness(100); // 中等亮度
+
+  // 全部点亮为蓝色（表示等待/初始化）
+  for (int i = 0; i < NUM_PIXELS; i++)
+  {
+    bootStrip->setPixelColor(i, bootStrip->Color(0, 50, 255));
+  }
+  bootStrip->show();
+  currentBootProgress = 0;
+
+  Serial.println("[Boot] Progress bar initialized");
+}
+
+void updateBootProgress(const char *stage)
+{
+  if (bootStrip == nullptr || currentBootProgress >= TOTAL_BOOT_STAGES)
+    return;
+
+  Serial.print("[Boot Progress] ");
+  Serial.print(currentBootProgress + 1);
+  Serial.print("/");
+  Serial.print(TOTAL_BOOT_STAGES);
+  Serial.print(" - ");
+  Serial.println(stage);
+
+  // 将当前进度的灯珠变为绿色（已完成）
+  bootStrip->setPixelColor(currentBootProgress, bootStrip->Color(0, 255, 0));
+  bootStrip->show();
+
+  currentBootProgress++;
+  delay(100); // 短暂延迟以便看清变化
+}
+
+void finishBootProgress()
+{
+  if (bootStrip == nullptr)
+    return;
+
+  Serial.println("[Boot] Finishing progress bar...");
+
+  // 所有灯珠变为绿色（全部完成）
+  for (int i = 0; i < NUM_PIXELS; i++)
+  {
+    bootStrip->setPixelColor(i, bootStrip->Color(0, 255, 0));
+  }
+  bootStrip->show();
+  delay(500);
+
+  // 渐变到暗
+  for (int brightness = 255; brightness >= 0; brightness -= 15)
+  {
+    for (int i = 0; i < NUM_PIXELS; i++)
+    {
+      bootStrip->setPixelColor(i, bootStrip->Color(0, brightness, 0));
+    }
+    bootStrip->show();
+    delay(30);
+  }
+
+  // 清除并释放资源
+  bootStrip->clear();
+  bootStrip->show();
+  delete bootStrip;
+  bootStrip = nullptr;
+
+  Serial.println("[Boot] Progress bar completed and cleared");
+}
+
 void setup()
 {
 
@@ -139,14 +217,20 @@ void setup()
     ;
   }
 
+  // 初始化开机进度条
+  initBootProgressBar();
+  updateBootProgress("Serial initialized");
+
   Serial.println("\n\n");
   Serial.println("========================================");
   Serial.println("   Aura Light System V2.1 Starting... ");
   Serial.println("========================================\n");
 
   setupWiFi();
+  updateBootProgress("WiFi connected");
 
   systemCity = getCurrentCity();
+  updateBootProgress("Location acquired");
   Serial.println("========================================");
   Serial.print("[System] Current city: ");
   Serial.println(systemCity);
@@ -168,6 +252,7 @@ void setup()
   {
     Serial.println("[System] ✗ MQTT connection failed\n");
   }
+  updateBootProgress("MQTT initialized");
 
   Serial.print("[System] Initializing local controller with ");
   Serial.print(NUM_PIXELS);
@@ -178,6 +263,7 @@ void setup()
   Serial.println("[System] Initializing Luminaire controller...");
   luminaireControl.begin(&mqtt, LUMINAIRE_ID);
   luminaireControl.setActive(false);
+  updateBootProgress("Controllers ready");
 
   // 初始化音频分析器
   Serial.println("\n[System] Initializing audio analyzer (MAX9814 on A0)...");
@@ -190,6 +276,7 @@ void setup()
   // 配置控制器的 Music 模式
   lightControl.setMusicMode(&musicMode, &audioAnalyzer);
   luminaireControl.setMusicMode(&musicMode, &audioAnalyzer);
+  updateBootProgress("Audio initialized");
 
   if (mqtt.isConnected())
   {
@@ -203,13 +290,23 @@ void setup()
 
   Serial.println("\n[System] Initializing weather manager...");
   weatherManager.begin(&mqtt, systemCity);
+  updateBootProgress("Weather ready");
 
   Serial.println("\n[System] Initializing button manager on pin 1...");
   buttonManager.begin(&mqtt, &lightControl, &luminaireControl, (int *)&currentController);
+  updateBootProgress("Button ready");
 
   Serial.println("\n========================================");
   Serial.println("[System] ✓ System ready!");
   Serial.println("========================================\n");
+
+  // 完成开机进度条
+  finishBootProgress();
+
+  // 重新初始化 lightControl 的 NeoPixel (因为进度条使用了同一引脚)
+  Serial.println("[System] Reinitializing local controller NeoPixel after boot progress...");
+  lightControl.begin(&mqtt, NUM_PIXELS);
+  lightControl.setActive(true);
 
   Serial.println("MQTT Control Commands (V2.2):");
   Serial.println("  CONTROLLER:");
