@@ -2,6 +2,7 @@
 #define BUTTON_MANAGER_H
 
 #include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
 
 class MQTTManager;
 class LightController;
@@ -10,9 +11,11 @@ class LuminaireController;
 class ButtonManager
 {
 private:
-    static const int BUTTON_PIN = 1;                   // 按钮连接到引脚1
-    static const unsigned long DEBOUNCE_DELAY = 50;    // 防抖延迟 50ms
-    static const unsigned long LONG_PRESS_TIME = 2000; // 长按时间 2秒
+    static const int BUTTON_PIN = 1;                    // 按钮连接到引脚1
+    static const unsigned long DEBOUNCE_DELAY = 50;     // 防抖延迟 50ms
+    static const unsigned long LONG_PRESS_TIME = 2000;  // 长按时间 2秒
+    static const unsigned long DOUBLE_CLICK_TIME = 800; // 双击间隔时间 800ms
+    static const int STATUS_LED_PIN = 0;                // 状态LED引脚
 
     MQTTManager *mqtt;
     LightController *localController;
@@ -26,16 +29,29 @@ private:
     bool buttonPressed;             // 按钮是否被按下
     bool longPressHandled;          // 长按是否已处理
 
-    void handleShortPress(); // 处理短按（切换模式）
-    void handleLongPress();  // 处理长按（开关灯）
+    // 双击检测相关
+    unsigned long lastClickTime; // 上次单击时间
+    int clickCount;              // 点击计数
+
+    // NeoPixel 状态指示器
+    Adafruit_NeoPixel *statusLED;
+
+    void handleShortPress();  // 处理短按（切换模式）
+    void handleLongPress();   // 处理长按（开关灯）
+    void handleDoubleClick(); // 处理双击（切换控制器）
+
+    void flashNeoPixel(uint32_t color, int duration); // 闪烁NeoPixel
+    void updateLuminaireStatus();                     // 更新Luminaire状态指示
 
 public:
     ButtonManager();
+    ~ButtonManager();
     void begin(MQTTManager *mqttManager,
                LightController *localCtrl,
                LuminaireController *luminaireCtrl,
                int *mode); // 使用 int* 代替 ControllerMode*
     void loop();
+    void updateStatusLED(); // 公开方法：更新状态LED（供外部调用）
 };
 
 #endif

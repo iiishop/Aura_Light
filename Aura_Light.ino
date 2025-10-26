@@ -60,6 +60,9 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       Serial.print(currentState);
       Serial.print(", Mode: ");
       Serial.println(currentMode);
+
+      // 更新状态LED（Local模式下熄灭）
+      buttonManager.updateStatusLED();
     }
     else if (msg == "luminaire")
     {
@@ -81,6 +84,9 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
       Serial.print(currentState);
       Serial.print(", Mode: ");
       Serial.println(currentMode);
+
+      // 更新状态LED（显示Luminaire状态）
+      buttonManager.updateStatusLED();
     }
     return;
   }
@@ -126,6 +132,8 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
   else if (currentController == MODE_LUMINAIRE)
   {
     luminaireControl.handleMQTTMessage(topic, payload, length);
+    // Luminaire 状态/模式可能已改变，更新状态LED
+    buttonManager.updateStatusLED();
   }
 }
 
@@ -383,6 +391,14 @@ void loop()
   // 按钮管理器循环
   buttonManager.loop();
 
+  // 定期更新状态LED（Luminaire模式下）
+  static unsigned long lastStatusUpdate = 0;
+  if (currentController == MODE_LUMINAIRE && millis() - lastStatusUpdate > 1000)
+  {
+    buttonManager.updateStatusLED();
+    lastStatusUpdate = millis();
+  }
+
   // 串口命令处理
   if (Serial.available() > 0)
   {
@@ -443,8 +459,8 @@ void loop()
         audioMsg += "," + String(spectrum[i], 2);
       }
 
-      // 发布到 MQTT
-      mqtt.publishInfo("audio/data", audioMsg.c_str(), false);
+      // 发布到 MQTT (已禁用以减少日志输出)
+      // mqtt.publishInfo("audio/data", audioMsg.c_str(), false);
     }
     lastAudioPublish = millis();
   }

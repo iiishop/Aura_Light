@@ -17,8 +17,22 @@ ButtonManager::ButtonManager()
       lastDebounceTime(0),
       buttonPressTime(0),
       buttonPressed(false),
-      longPressHandled(false)
+      longPressHandled(false),
+      lastClickTime(0),
+      clickCount(0),
+      statusLED(nullptr)
 {
+}
+
+ButtonManager::~ButtonManager()
+{
+    if (statusLED != nullptr)
+    {
+        statusLED->clear();
+        statusLED->show();
+        delete statusLED;
+        statusLED = nullptr;
+    }
 }
 
 void ButtonManager::begin(MQTTManager *mqttManager,
@@ -53,6 +67,14 @@ void ButtonManager::begin(MQTTManager *mqttManager,
     Serial.println("[Button]   GND → GND");
     Serial.println("[Button] - Short press: Cycle through modes (Timer → Weather → Idle → Music)");
     Serial.println("[Button] - Long press (2s): Toggle light ON/OFF");
+    Serial.println("[Button] - Double click: Switch controller (Local ↔ Luminaire)");
+
+    // 初始化 NeoPixel 状态指示器
+    statusLED = new Adafruit_NeoPixel(1, STATUS_LED_PIN, NEO_GRB + NEO_KHZ800);
+    statusLED->begin();
+    statusLED->clear();
+    statusLED->show();
+    Serial.println("[Button] ✓ NeoPixel status indicator initialized on pin 0");
 }
 
 void ButtonManager::loop()
@@ -99,12 +121,41 @@ void ButtonManager::loop()
                 {
                     if (pressDuration < LONG_PRESS_TIME)
                     {
-                        // 短按：切换模式
-                        handleShortPress();
+                        // 检测双击
+                        unsigned long timeSinceLastClick = millis() - lastClickTime;
+
+                        if (timeSinceLastClick < DOUBLE_CLICK_TIME && clickCount == 1)
+                        {
+                            // 双击检测到
+                            Serial.print("[Button] ⚡⚡ Double click detected (");
+                            Serial.print(timeSinceLastClick);
+                            Serial.println("ms interval)");
+                            clickCount = 0;
+                            lastClickTime = 0;
+                            handleDoubleClick();
+                        }
+                        else
+                        {
+                            // 第一次点击或超时
+                            if (clickCount == 0)
+                            {
+                                Serial.println("[Button] 🖱️ Click #1, waiting for second click...");
+                            }
+                            clickCount = 1;
+                            lastClickTime = millis();
+                        }
                     }
                 }
             }
         }
+    }
+
+    // 检测单击超时（如果只有一次点击且超过双击时间窗口）
+    if (clickCount == 1 && (millis() - lastClickTime) > DOUBLE_CLICK_TIME)
+    {
+        Serial.println("[Button] ⏱️ Double click timeout, executing single click");
+        clickCount = 0;
+        handleShortPress();
     }
 
     // 检测长按
@@ -156,7 +207,7 @@ void ButtonManager::handleShortPress()
         localController->setMode(nextModeStr);
 
         // 通过MQTT发布新模式
-        mqtt->publish("mode", nextModeStr.c_str(), true);
+        mqtt->publishMode(nextModeStr.c_str());
 
         Serial.print("[Button]    ✓ Mode: ");
         Serial.println(nextModeStr);
@@ -185,8 +236,8 @@ void ButtonManager::handleShortPress()
             break;
         }
 
-        // 发送MQTT消息（让handleMQTTMessage处理）
-        mqtt->publish("mode", nextModeStr.c_str(), true);
+        // 发送MQTT消息（LuminaireController通过handleMQTTMessage处理）
+        mqtt->publishMode(nextModeStr.c_str());
 
         Serial.print("[Button]    ✓ Luminaire mode: ");
         Serial.println(nextModeStr);
@@ -206,13 +257,13 @@ void ButtonManager::handleLongPress()
         if (currentlyOn)
         {
             localController->turnOff();
-            mqtt->publish("status", "off", true);
+            mqtt->publishStatus("off");
             Serial.println("[Button]    ✓ Light OFF");
         }
         else
         {
             localController->turnOn();
-            mqtt->publish("status", "on", true);
+            mqtt->publishStatus("on");
             Serial.println("[Button]    ✓ Light ON");
         }
     }
@@ -223,13 +274,105 @@ void ButtonManager::handleLongPress()
 
         if (currentlyOn)
         {
-            mqtt->publish("status", "off", true);
+            mqtt->publishStatus("off");
             Serial.println("[Button]    ✓ Luminaire OFF");
         }
         else
         {
-            mqtt->publish("status", "on", true);
+            mqtt->publishStatus("on");
             Serial.println("[Button]    ✓ Luminaire ON");
         }
     }
+}
+
+void ButtonManager::handleDoubleClick()
+{
+    Serial.println("[Button] ⚡⚡ Double click → Switch controller");
+
+    if (*currentMode == MODE_LOCAL)
+    {
+        // 切换到 Luminaire
+        *currentMode = MODE_LUMINAIRE;
+        mqtt->publishInfo("controller", "luminaire", true);
+
+        // 闪红光
+        flashNeoPixel(statusLED->Color(255, 0, 0), 300);
+
+        // 更新状态指示器
+        updateLuminaireStatus();
+
+        Serial.println("[Button]    ✓ Switched to LUMINAIRE");
+    }
+    else
+    {
+        // 切换到 Local
+        *currentMode = MODE_LOCAL;
+        mqtt->publishInfo("controller", "local", true);
+
+        // 闪绿光后熄灭
+        flashNeoPixel(statusLED->Color(0, 255, 0), 300);
+        statusLED->clear();
+        statusLED->show();
+
+        Serial.println("[Button]    ✓ Switched to LOCAL");
+    }
+}
+
+void ButtonManager::flashNeoPixel(uint32_t color, int duration)
+{
+    statusLED->setPixelColor(0, color);
+    statusLED->show();
+    delay(duration);
+    statusLED->clear();
+    statusLED->show();
+}
+
+void ButtonManager::updateLuminaireStatus()
+{
+    // 仅在 Luminaire 模式下更新状态指示
+    if (*currentMode != MODE_LUMINAIRE)
+    {
+        statusLED->clear();
+        statusLED->show();
+        return;
+    }
+
+    // 检查 Luminaire 是否开启
+    if (!luminaireController->isOn())
+    {
+        statusLED->clear();
+        statusLED->show();
+        return;
+    }
+
+    // 根据模式显示不同颜色
+    LuminaireMode mode = luminaireController->getMode();
+    uint32_t color = 0;
+
+    switch (mode)
+    {
+    case LUMI_MODE_IDLE:
+        color = statusLED->Color(0, 0, 255); // 蓝色
+        break;
+    case LUMI_MODE_WEATHER:
+        color = statusLED->Color(0, 255, 0); // 绿色
+        break;
+    case LUMI_MODE_TIMER:
+        color = statusLED->Color(255, 0, 0); // 红色
+        break;
+    case LUMI_MODE_MUSIC:
+        color = statusLED->Color(255, 255, 0); // 黄色
+        break;
+    default:
+        color = statusLED->Color(0, 0, 255); // 默认蓝色
+        break;
+    }
+
+    statusLED->setPixelColor(0, color);
+    statusLED->show();
+}
+
+void ButtonManager::updateStatusLED()
+{
+    updateLuminaireStatus();
 }
