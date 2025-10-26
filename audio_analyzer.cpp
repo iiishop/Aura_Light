@@ -3,144 +3,205 @@
 AudioAnalyzer::AudioAnalyzer()
     : minDecibel(MIN_DB),
       maxDecibel(MAX_DB),
-      lastSampleTime(0),
+      lastFFTTime(0),
       currentVolume(0.0),
       smoothedVolume(0.0),
       lastRawADC(0),
-      lastBandUpdate(0)
+      FFT(ArduinoFFT<double>(vReal, vImag, SAMPLES, SAMPLING_FREQUENCY)) // 创建 FFT 对象
 {
-    for (int i = 0; i < 12; i++)
+    // 初始化数组
+    for (int i = 0; i < NUM_BANDS; i++)
     {
-        virtualBands[i] = 0.0;
+        spectrumBands[i] = 0.0;
+        smoothedBands[i] = 0.0;
     }
+
+    for (int i = 0; i < SAMPLES; i++)
+    {
+        vReal[i] = 0.0;
+        vImag[i] = 0.0;
+    }
+
+    // 计算采样周期（微秒）
+    sampling_period_us = round(1000000.0 / SAMPLING_FREQUENCY);
 }
 
 void AudioAnalyzer::begin()
 {
     pinMode(AUDIO_PIN, INPUT);
 
-    Serial.println("[AudioAnalyzer] Initialized");
+    Serial.println("[AudioAnalyzer] FFT-based analyzer initialized");
     Serial.print("[AudioAnalyzer] Input pin: A");
     Serial.println(AUDIO_PIN - A0);
-    Serial.print("[AudioAnalyzer] Volume range: ");
-    Serial.print(minDecibel);
-    Serial.print(" - ");
-    Serial.print(maxDecibel);
-    Serial.println(" dB");
+    Serial.print("[AudioAnalyzer] Sampling frequency: ");
+    Serial.print(SAMPLING_FREQUENCY);
+    Serial.println(" Hz");
+    Serial.print("[AudioAnalyzer] Samples: ");
+    Serial.println(SAMPLES);
+    Serial.print("[AudioAnalyzer] Frequency resolution: ");
+    Serial.print(SAMPLING_FREQUENCY / SAMPLES);
+    Serial.println(" Hz/bin");
+    Serial.print("[AudioAnalyzer] Number of bands: ");
+    Serial.println(NUM_BANDS);
+    Serial.print("[AudioAnalyzer] Sampling period: ");
+    Serial.print(sampling_period_us);
+    Serial.println(" us");
 }
 
 void AudioAnalyzer::loop()
 {
     unsigned long currentTime = millis();
 
-    // 每 SAMPLE_WINDOW ms 采样一次
-    if (currentTime - lastSampleTime >= SAMPLE_WINDOW)
+    // 每 30-50ms 执行一次 FFT（避免过于频繁）
+    if (currentTime - lastFFTTime >= 40)
     {
-        lastSampleTime = currentTime;
+        lastFFTTime = currentTime;
+        performFFT();
+        updateBands();
+        currentVolume = calculateVolume();
 
-        // 读取音量
-        float rawVol = readRawVolume();
-        currentVolume = rawVol;
-
-        // 平滑处理
-        smoothedVolume = smoothedVolume * (1.0 - SMOOTHING_FACTOR) + rawVol * SMOOTHING_FACTOR;
-
-        // 限制范围
-        if (smoothedVolume < 0.0)
-            smoothedVolume = 0.0;
-        if (smoothedVolume > 1.0)
-            smoothedVolume = 1.0;
-    }
-
-    // 每 20ms 更新一次虚拟频段
-    if (currentTime - lastBandUpdate >= 20)
-    {
-        lastBandUpdate = currentTime;
-        updateVirtualBands();
+        // 平滑总音量
+        smoothedVolume = smoothedVolume * 0.7 + currentVolume * 0.3;
     }
 }
 
-float AudioAnalyzer::readRawVolume()
+void AudioAnalyzer::performFFT()
 {
-    unsigned long startMillis = millis();
-    unsigned int peakToPeak = 0;
+    // 采样音频数据（参考 LEDSpectrum 项目的方法）
+    unsigned long microseconds = micros();
     unsigned int signalMax = 0;
     unsigned int signalMin = 1024;
-    unsigned int sampleCount = 0;
-    unsigned long sampleSum = 0;
 
-    // 在 SAMPLE_WINDOW 内收集数据
-    while (millis() - startMillis < SAMPLE_WINDOW)
+    for (int i = 0; i < SAMPLES; i++)
     {
         unsigned int sample = analogRead(AUDIO_PIN);
+        vReal[i] = sample; // 直接存储 ADC 值
+        vImag[i] = 0.0;    // 虚部清零
 
-        if (sample < 1024)
+        // 跟踪峰峰值用于总音量计算
+        if (sample > signalMax)
+            signalMax = sample;
+        if (sample < signalMin)
+            signalMin = sample;
+
+        // 精确等待下一个采样周期
+        while (micros() - microseconds < sampling_period_us)
         {
-            if (sample > signalMax)
-            {
-                signalMax = sample;
-            }
-            if (sample < signalMin)
-            {
-                signalMin = sample;
-            }
-
-            // 累加样本用于计算平均值
-            sampleSum += sample;
-            sampleCount++;
+            // 空循环等待
         }
+        microseconds += sampling_period_us;
     }
 
-    peakToPeak = signalMax - signalMin;
+    // 保存峰峰值
+    lastRawADC = signalMax - signalMin;
 
-    // 浮空检测：如果峰峰值太小（< 5 ADC counts），可能是浮空或无信号
-    // 如果平均值接近 0 或 1023，也可能是接触不良
-    if (sampleCount > 0)
+    // 执行 FFT（使用 arduinoFFT 2.x 新版 API）
+    FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward); // 汉明窗
+    FFT.compute(FFTDirection::Forward);                       // 计算 FFT
+    FFT.complexToMagnitude();                                 // 转换为幅度谱
+}
+
+void AudioAnalyzer::updateBands()
+{
+    // 简化的频段映射方法（参考 LEDSpectrum）
+    // 4000 Hz / 64 samples = 62.5 Hz/bin
+    // FFT 输出 32 个有效 bins (0-2000 Hz)
+    //
+    // 12 频段直接从 FFT bins 选取（跳过 bin 0 和 1 是 DC 和极低频噪声）:
+    // Band 0:  bin 2-3    (125-187 Hz)  - 低音
+    // Band 1:  bin 4-5    (250-312 Hz)  - 低音
+    // Band 2:  bin 6-7    (375-437 Hz)  - 中低音
+    // Band 3:  bin 8-9    (500-562 Hz)  - 中低音
+    // Band 4:  bin 10-11  (625-687 Hz)  - 中音
+    // Band 5:  bin 12-13  (750-812 Hz)  - 中音
+    // Band 6:  bin 14-15  (875-937 Hz)  - 中高音
+    // Band 7:  bin 16-17  (1000-1062 Hz) - 中高音
+    // Band 8:  bin 18-20  (1125-1250 Hz) - 高音
+    // Band 9:  bin 21-23  (1312-1437 Hz) - 高音
+    // Band 10: bin 24-26  (1500-1625 Hz) - 极高音
+    // Band 11: bin 27-30  (1687-1875 Hz) - 极高音
+
+    // 直接取平均值的方法
+    spectrumBands[0] = (vReal[2] + vReal[3]) / 2.0;
+    spectrumBands[1] = (vReal[4] + vReal[5]) / 2.0;
+    spectrumBands[2] = (vReal[6] + vReal[7]) / 2.0;
+    spectrumBands[3] = (vReal[8] + vReal[9]) / 2.0;
+    spectrumBands[4] = (vReal[10] + vReal[11]) / 2.0;
+    spectrumBands[5] = (vReal[12] + vReal[13]) / 2.0;
+    spectrumBands[6] = (vReal[14] + vReal[15]) / 2.0;
+    spectrumBands[7] = (vReal[16] + vReal[17]) / 2.0;
+    spectrumBands[8] = (vReal[18] + vReal[19] + vReal[20]) / 3.0;
+    spectrumBands[9] = (vReal[21] + vReal[22] + vReal[23]) / 3.0;
+    spectrumBands[10] = (vReal[24] + vReal[25] + vReal[26]) / 3.0;
+    spectrumBands[11] = (vReal[27] + vReal[28] + vReal[29] + vReal[30]) / 4.0;
+
+    // 找到最大值用于归一化
+    float maxMagnitude = 0.0;
+    for (int i = 0; i < NUM_BANDS; i++)
     {
-        unsigned int avgValue = sampleSum / sampleCount;
+        if (spectrumBands[i] > maxMagnitude)
+            maxMagnitude = spectrumBands[i];
+    }
 
-        // 诊断信息（可选，调试时启用）
-        static unsigned long lastDiagnostic = 0;
-        if (millis() - lastDiagnostic > 5000) // 每 5 秒打印一次
+    // 归一化到 0.0-1.0 并平滑处理
+    if (maxMagnitude > 10.0) // 避免除以零或过小的值
+    {
+        for (int i = 0; i < NUM_BANDS; i++)
         {
-            Serial.print("[AudioAnalyzer] Peak-to-peak: ");
-            Serial.print(peakToPeak);
-            Serial.print(", Avg: ");
-            Serial.print(avgValue);
-            Serial.print(", Min: ");
-            Serial.print(signalMin);
-            Serial.print(", Max: ");
-            Serial.println(signalMax);
+            // 归一化
+            spectrumBands[i] = spectrumBands[i] / maxMagnitude;
 
-            if (peakToPeak < 5)
-            {
-                Serial.println("[AudioAnalyzer] WARNING: Very low signal - check MAX9814 connection!");
-            }
-            if (avgValue < 10 || avgValue > 1014)
-            {
-                Serial.println("[AudioAnalyzer] WARNING: Floating pin detected - OUT pin may be disconnected!");
-            }
+            // 平滑处理（60% 旧值 + 40% 新值）
+            smoothedBands[i] = smoothedBands[i] * 0.6 + spectrumBands[i] * 0.4;
 
-            lastDiagnostic = millis();
-        }
-
-        // 如果峰峰值小于噪声阈值（5），强制返回 0
-        if (peakToPeak < 5)
-        {
-            lastRawADC = 0;
-            return 0.0;
+            // 限制范围
+            if (smoothedBands[i] < 0.0)
+                smoothedBands[i] = 0.0;
+            if (smoothedBands[i] > 1.0)
+                smoothedBands[i] = 1.0;
         }
     }
 
-    // 保存原始 ADC 值用于 Dashboard 显示
-    lastRawADC = peakToPeak;
+    // 调试输出（每 2 秒）
+    static unsigned long lastDebug = 0;
+    if (millis() - lastDebug > 2000)
+    {
+        Serial.print("[FFT Bands] ");
+        for (int i = 0; i < NUM_BANDS; i++)
+        {
+            Serial.print(i);
+            Serial.print(":");
+            Serial.print(smoothedBands[i], 2);
+            Serial.print(" ");
+        }
+        Serial.print(" | Max:");
+        Serial.print(maxMagnitude, 1);
+        Serial.println();
+        lastDebug = millis();
+    }
+}
 
-    // 转换为 0.0 - 1.0
-    // MAX9814 输出范围是 0-VDD，对应 ADC 0-1023
-    float voltage = (peakToPeak * 3.3) / 1024.0;
+float AudioAnalyzer::calculateVolume()
+{
+    // 从 FFT 结果计算总能量（RMS）
+    double totalEnergy = 0.0;
+    int count = 0;
 
-    // 简化的音量计算（0-3.3V 映射到 0.0-1.0）
-    float volume = voltage / 3.3;
+    // 使用 FFT bin 2 到 SAMPLES/2-1（跳过直流和最高频）
+    for (int i = 2; i < SAMPLES / 2; i++)
+    {
+        totalEnergy += vReal[i] * vReal[i];
+        count++;
+    }
+
+    if (count > 0)
+    {
+        totalEnergy = sqrt(totalEnergy / count);
+    }
+
+    // 归一化到 0.0-1.0
+    // ADC 范围 0-1023，RMS 大约在 0-500 范围
+    float volume = totalEnergy / 500.0;
 
     return volume;
 }
@@ -200,133 +261,7 @@ float AudioAnalyzer::volumeToDecibel(float vol) const
     if (absoluteDb > 120)
         absoluteDb = 120;
 
-    // 调试输出（每 3 秒）
-    static unsigned long lastDebug = 0;
-    if (millis() - lastDebug > 3000)
-    {
-        Serial.print("[AudioAnalyzer] V: ");
-        Serial.print(voltage, 3);
-        Serial.print("V, dB: ");
-        Serial.print(absoluteDb, 1);
-        Serial.print(" (range: ");
-        Serial.print(db_quiet, 0);
-        Serial.print("-");
-        Serial.print(db_loud, 0);
-        Serial.println(")");
-        lastDebug = millis();
-    }
-
     return absoluteDb;
-}
-
-void AudioAnalyzer::updateVirtualBands()
-{
-    // 改进的虚拟频谱算法
-    // 基于音量变化的速度（一阶导数）和加速度（二阶导数）来模拟频率响应
-
-    static float lastVolume = 0.0;
-    static float lastDelta = 0.0;
-
-    // 一阶导数：音量变化速度
-    float deltaVolume = currentVolume - lastVolume;
-    float absChange = abs(deltaVolume);
-
-    // 二阶导数：音量变化的加速度（变化率的变化）
-    float acceleration = deltaVolume - lastDelta;
-    float absAccel = abs(acceleration);
-
-    // 更新历史值
-    lastVolume = currentVolume;
-    lastDelta = deltaVolume;
-
-    for (int i = 0; i < 12; i++)
-    {
-        float targetLevel;
-
-        if (i < 2)
-        {
-            // 超低频段（0-1）：20-60 Hz
-            // 主要跟随总音量，几乎不受快速变化影响
-            targetLevel = smoothedVolume * 0.85;
-            // 超低频在自然声音中较少，添加衰减
-            targetLevel *= 0.7;
-        }
-        else if (i < 4)
-        {
-            // 低频段（2-3）：60-250 Hz
-            // 跟随平滑音量，轻微受变化速度影响
-            targetLevel = smoothedVolume * 0.90 + absChange * 1.5;
-        }
-        else if (i < 7)
-        {
-            // 中低频段（4-6）：250-1000 Hz
-            // 人声和大部分乐器的主要频段
-            // 平衡音量和变化速度
-            targetLevel = smoothedVolume * 0.95 + absChange * 2.5;
-            targetLevel *= 1.1; // 轻微增强，因为是主要频段
-        }
-        else if (i < 9)
-        {
-            // 中高频段（7-8）：1-4 kHz
-            // 更多受快速变化影响
-            targetLevel = currentVolume * 0.75 + absChange * 4.0 + absAccel * 2.0;
-        }
-        else
-        {
-            // 高频段（9-11）：4-8 kHz
-            // 主要跟随瞬时变化和加速度
-            targetLevel = currentVolume * 0.60 + absChange * 6.0 + absAccel * 4.0;
-            // 高频在环境音中较少，需要明显变化才显示
-            targetLevel *= 0.8;
-        }
-
-        // 添加频段特定的随机性（模拟噪声和泛音）
-        float randomFactor;
-        if (i < 4)
-        {
-            // 低频：稳定，随机性小
-            randomFactor = random(90, 110) / 100.0;
-        }
-        else if (i < 7)
-        {
-            // 中频：中等随机性
-            randomFactor = random(85, 115) / 100.0;
-        }
-        else
-        {
-            // 高频：不稳定，随机性大
-            randomFactor = random(75, 125) / 100.0;
-        }
-
-        targetLevel *= randomFactor;
-
-        // 限制范围
-        targetLevel = constrain(targetLevel, 0.0, 1.0);
-
-        // 频段特定的平滑系数
-        float bandSmoothing;
-        if (i < 3)
-        {
-            // 低频：慢速响应
-            bandSmoothing = 0.25;
-        }
-        else if (i < 7)
-        {
-            // 中频：中速响应
-            bandSmoothing = 0.40;
-        }
-        else
-        {
-            // 高频：快速响应
-            bandSmoothing = 0.60;
-        }
-
-        // 平滑过渡到目标值
-        virtualBands[i] = virtualBands[i] * (1.0 - bandSmoothing) + targetLevel * bandSmoothing;
-
-        // 自然衰减（模拟声音的自然衰减特性）
-        virtualBands[i] *= 0.95;
-    }
 }
 
 void AudioAnalyzer::setVolumeRange(float minDb, float maxDb)
@@ -364,10 +299,6 @@ float AudioAnalyzer::getVolume() const
     float db = getVolumeDecibel();
 
     // 基于用户设置的范围，将分贝值归一化到 0.0-1.0
-    // 例如：范围 30-120 dB
-    //   - 30 dB → 0.0
-    //   - 75 dB → 0.5
-    //   - 120 dB → 1.0
     float normalized = (db - minDecibel) / (maxDecibel - minDecibel);
 
     // 限制在 0.0-1.0 范围内
@@ -393,35 +324,21 @@ int AudioAnalyzer::getVolumeLevel(int maxLevels) const
     if (level < 0)
         level = 0;
 
-    // 调试：定期打印音量映射
-    static unsigned long lastVUDebug = 0;
-    if (millis() - lastVUDebug > 3000)
-    {
-        Serial.print("[AudioAnalyzer] dB: ");
-        Serial.print(getVolumeDecibel(), 1);
-        Serial.print(" → Normalized: ");
-        Serial.print(normalizedVolume, 3);
-        Serial.print(" → Level: ");
-        Serial.print(level);
-        Serial.print(" / ");
-        Serial.println(maxLevels - 1);
-        lastVUDebug = millis();
-    }
-
     return level;
 }
 
-void AudioAnalyzer::getVirtualBands(float bands[12]) const
+void AudioAnalyzer::getVirtualBands(float bands[NUM_BANDS]) const
 {
-    for (int i = 0; i < 12; i++)
+    // 返回真实的 FFT 频段数据
+    for (int i = 0; i < NUM_BANDS; i++)
     {
-        bands[i] = virtualBands[i];
+        bands[i] = smoothedBands[i];
     }
 }
 
 float AudioAnalyzer::getVirtualBand(int index) const
 {
-    if (index < 0 || index >= 12)
+    if (index < 0 || index >= NUM_BANDS)
         return 0.0;
-    return virtualBands[index];
+    return smoothedBands[index];
 }
