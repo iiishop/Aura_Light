@@ -57,6 +57,8 @@ private:
 
     bool suppressMqttFeedback;
 
+    uint32_t idleColor; // 自定义 IDLE 模式颜色
+
     void updateLEDs();
     void updateMusicVU(); // 新增：更新 Music VU 表显示
     void updateBreathingEffect();
@@ -107,6 +109,17 @@ public:
     const char *getStateString()
     {
         return (state == LIGHT_ON) ? "on" : "off";
+    }
+
+    // 获取 IDLE 颜色（格式: #RRGGBB）
+    String getIdleColor()
+    {
+        char hex[8];
+        sprintf(hex, "#%02X%02X%02X",
+                (uint8_t)((idleColor >> 16) & 0xFF),
+                (uint8_t)((idleColor >> 8) & 0xFF),
+                (uint8_t)(idleColor & 0xFF));
+        return String(hex);
     }
 };
 

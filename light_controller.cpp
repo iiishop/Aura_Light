@@ -21,6 +21,8 @@ LightController::LightController()
     breathBrightness = 0;
 
     suppressMqttFeedback = false;
+
+    idleColor = 0x0000FF; // 默认蓝色
 }
 
 LightController::~LightController()
@@ -275,6 +277,30 @@ void LightController::handleMQTTMessage(char *topic, byte *payload, unsigned int
             debugSetIndex(message.toInt());
         }
     }
+
+    // 新增：IDLE 模式自定义颜色
+    else if (topicStr.endsWith("/idle/color"))
+    {
+        // 接收格式: #RRGGBB
+        uint32_t newColor = hexToColor(message);
+        idleColor = newColor;
+
+        Serial.print("[LightController] IDLE color set to: ");
+        Serial.println(message);
+
+        // 如果当前是 IDLE 模式且灯是开启的，立即更新显示
+        if (mode == MODE_IDLE && state == LIGHT_ON)
+        {
+            applyModeColor();
+            updateLEDs();
+        }
+
+        // 发布确认消息
+        if (mqtt && !suppressMqttFeedback)
+        {
+            mqtt->publishInfo("idle/color", message.c_str(), true);
+        }
+    }
 }
 
 void LightController::turnOn()
@@ -367,8 +393,10 @@ void LightController::applyModeColor()
         Serial.println("[LightController] Mode color: GREEN");
         break;
     case MODE_IDLE:
-        modeColor = 0x0000FF;
-        Serial.println("[LightController] Mode color: BLUE");
+        modeColor = idleColor; // 使用自定义颜色
+        Serial.print("[LightController] Mode color: IDLE (Custom #");
+        Serial.print(idleColor, HEX);
+        Serial.println(")");
         break;
     case MODE_MUSIC:
         modeColor = 0xFFFFFF;
@@ -558,7 +586,7 @@ void LightController::updateLEDs()
                 modeColor = 0x00FF00;
                 break;
             case MODE_IDLE:
-                modeColor = 0x0000FF;
+                modeColor = idleColor; // 使用自定义颜色
                 break;
             case MODE_MUSIC:
                 modeColor = 0xFFFFFF;

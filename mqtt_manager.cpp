@@ -91,6 +91,9 @@ bool MQTTManager::connect()
         // 订阅调试主题
         subscribe((baseTopic + "/debug/#").c_str());
 
+        // 订阅 IDLE 模式颜色主题
+        subscribe((baseTopic + "/idle/color").c_str());
+
         // 订阅音频控制主题（不包括 /info/audio/）
         subscribe((baseTopic + "/audio/volume_range").c_str());
 
@@ -98,7 +101,7 @@ bool MQTTManager::connect()
         subscribe((baseTopic + "/refresh").c_str());
 
         Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(baseTopic + "/{status,mode,controller,debug/#,audio/volume_range,refresh}");
+        Serial.println(baseTopic + "/{status,mode,controller,debug/#,idle/color,audio/volume_range,refresh}");
 
         Serial.println("[MQTT] ========================================");
         Serial.println("[MQTT] MQTT connection established successfully");

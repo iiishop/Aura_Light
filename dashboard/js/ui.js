@@ -9,7 +9,8 @@ class UIManager {
             currentMode: 'idle',
             currentController: 'local',
             pixelCount: 8,
-            debugActive: false
+            debugActive: false,
+            idleColor: '#0000FF'  // 默认蓝色
         };
     }
 
@@ -66,6 +67,12 @@ class UIManager {
         this.elements.clearLogBtn = document.getElementById('clearLogBtn');
         this.elements.autoScrollLog = document.getElementById('autoScrollLog');
 
+        // IDLE 颜色控制元素
+        this.elements.idleColor = document.getElementById('idleColor');
+        this.elements.idleColorHex = document.getElementById('idleColorHex');
+        this.elements.applyIdleColorBtn = document.getElementById('applyIdleColorBtn');
+        this.elements.idlePresets = document.querySelectorAll('.idle-preset');
+
 
         this.elements.usernameInput.value = 'ucfninn';
         console.log('[UI] Username set to: ucfninn');
@@ -84,6 +91,18 @@ class UIManager {
             const hex = e.target.value;
             if (/^#[0-9A-F]{6}$/i.test(hex)) {
                 this.elements.debugColor.value = hex;
+            }
+        });
+
+        // IDLE 颜色选择器同步
+        this.elements.idleColor.addEventListener('input', (e) => {
+            this.elements.idleColorHex.value = e.target.value.toUpperCase();
+        });
+
+        this.elements.idleColorHex.addEventListener('input', (e) => {
+            const hex = e.target.value;
+            if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                this.elements.idleColor.value = hex;
             }
         });
 
@@ -135,6 +154,12 @@ class UIManager {
             this.elements.applyDebugBtn.disabled = false;
             this.elements.clearDebugBtn.disabled = false;
 
+            // 启用 IDLE 颜色控制
+            this.elements.idleColor.disabled = false;
+            this.elements.idleColorHex.disabled = false;
+            this.elements.applyIdleColorBtn.disabled = false;
+            this.elements.idlePresets.forEach(btn => btn.disabled = false);
+
         } else {
             this.elements.statusIndicator.classList.remove('connected');
             this.elements.statusText.textContent = 'Disconnected';
@@ -154,6 +179,12 @@ class UIManager {
             this.elements.debugBrightness.disabled = true;
             this.elements.applyDebugBtn.disabled = true;
             this.elements.clearDebugBtn.disabled = true;
+
+            // 禁用 IDLE 颜色控制
+            this.elements.idleColor.disabled = true;
+            this.elements.idleColorHex.disabled = true;
+            this.elements.applyIdleColorBtn.disabled = true;
+            this.elements.idlePresets.forEach(btn => btn.disabled = true);
         }
     }
 
@@ -375,10 +406,35 @@ class UIManager {
         const colors = {
             'timer': '#ff4444',
             'weather': '#44ff44',
-            'idle': '#4444ff',
+            'idle': this.state.idleColor || '#4444ff',  // 使用自定义颜色
             'music': '#ffffff'
         };
         return colors[mode] || '#ffffff';
+    }
+
+
+    updateIdleColor(color) {
+        console.log('[UI] updateIdleColor called with:', color);
+
+        // 验证颜色格式
+        if (!/^#[0-9A-F]{6}$/i.test(color)) {
+            console.warn('[UI] Invalid color format:', color);
+            return;
+        }
+
+        // 更新状态
+        this.state.idleColor = color.toUpperCase();
+
+        // 更新UI控件
+        this.elements.idleColor.value = color;
+        this.elements.idleColorHex.value = color.toUpperCase();
+
+        console.log('[UI] ✓ IDLE color updated to:', color);
+
+        // 如果当前是IDLE模式且灯是开启的，更新可视化
+        if (this.state.currentMode === 'idle' && this.state.lightOn) {
+            this.updateVisualization();
+        }
     }
 
 

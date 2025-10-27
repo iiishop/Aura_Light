@@ -95,6 +95,12 @@ class AuraLightDashboard {
             ui.updateController(message);
         }
 
+        // IDLE 颜色更新
+        else if (topic.endsWith('/idle/color') || topic.endsWith('/info/idle/color')) {
+            console.log('[App] → IDLE COLOR message:', message);
+            ui.updateIdleColor(message);
+        }
+
 
         else if (topic.includes('/debug/')) {
             console.log('[App] → DEBUG message');
@@ -284,6 +290,21 @@ class AuraLightDashboard {
             this.clearDebug();
         });
 
+        // IDLE 颜色控制事件
+        ui.elements.applyIdleColorBtn.addEventListener('click', () => {
+            console.log('[App] Apply IDLE color button clicked');
+            this.applyIdleColor();
+        });
+
+        ui.elements.idlePresets.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const color = btn.dataset.color;
+                ui.elements.idleColor.value = color;
+                ui.elements.idleColorHex.value = color.toUpperCase();
+                console.log('[App] IDLE preset selected:', color);
+            });
+        });
+
 
         // 音量范围设置
         ui.elements.applyVolumeRangeBtn.addEventListener('click', () => {
@@ -417,6 +438,25 @@ class AuraLightDashboard {
         if (mqttManager.publish(MQTT_CONFIG.topics.debugIndex, 'clear')) {
             ui.addLog('sent', 'debug/index', 'clear');
             ui.updateDebugStatus(false);
+        }
+    }
+
+
+    applyIdleColor() {
+        const color = ui.elements.idleColorHex.value.toUpperCase();
+
+        // 验证颜色格式
+        if (!/^#[0-9A-F]{6}$/i.test(color)) {
+            alert('Invalid color format! Use #RRGGBB format.');
+            return;
+        }
+
+        console.log('[App] Publishing IDLE color:', color);
+        if (mqttManager.publish('/idle/color', color)) {
+            ui.addLog('sent', 'idle/color', color);
+            console.log('[App] IDLE color published successfully');
+        } else {
+            console.error('[App] Failed to publish IDLE color');
         }
     }
 }

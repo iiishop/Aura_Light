@@ -8,7 +8,11 @@ LuminaireController::LuminaireController()
       audioAnalyzer(nullptr),
       isActive(false),
       state(LUMI_OFF),
-      mode(LUMI_MODE_IDLE)
+      mode(LUMI_MODE_IDLE),
+      idleColor(0x0000FF), // 默认蓝色
+      lastBreathUpdate(0),
+      breathDirection(1),
+      breathBrightness(0)
 {
 
     memset(RGBpayload, 0, LUMINAIRE_PAYLOAD_SIZE);
@@ -41,8 +45,14 @@ void LuminaireController::setMusicMode(MusicMode *music, AudioAnalyzer *audio)
 
 void LuminaireController::loop()
 {
-    // 只在 Music 模式且激活时更新
-    if (isActive && state == LUMI_ON && mode == LUMI_MODE_MUSIC && musicMode != nullptr && audioAnalyzer != nullptr)
+    // 只在激活且开启时更新
+    if (!isActive || state != LUMI_ON)
+    {
+        return;
+    }
+
+    // Music 模式更新
+    if (mode == LUMI_MODE_MUSIC && musicMode != nullptr && audioAnalyzer != nullptr)
     {
         // 限制更新频率为每秒约 20 次（避免阻塞主循环）
         static unsigned long lastUpdate = 0;
@@ -51,6 +61,11 @@ void LuminaireController::loop()
             updateMusicSpectrum();
             lastUpdate = millis();
         }
+    }
+    // IDLE 模式呼吸灯更新
+    else if (mode == LUMI_MODE_IDLE)
+    {
+        updateBreathingEffect();
     }
 }
 
@@ -157,6 +172,15 @@ void LuminaireController::handleMQTTMessage(char *topic, byte *payload, unsigned
         {
             Serial.println("[Luminaire] Setting state to ON");
             state = LUMI_ON;
+
+            // 如果是 IDLE 模式，初始化呼吸灯
+            if (mode == LUMI_MODE_IDLE)
+            {
+                breathBrightness = 0;
+                breathDirection = 1;
+                lastBreathUpdate = millis();
+            }
+
             applyModeColor();
         }
         else if (message == "off" || message == "OFF" || message == "0")
@@ -181,6 +205,10 @@ void LuminaireController::handleMQTTMessage(char *topic, byte *payload, unsigned
         else if (message == "idle")
         {
             mode = LUMI_MODE_IDLE;
+            // 初始化呼吸灯参数
+            breathBrightness = 0;
+            breathDirection = 1;
+            lastBreathUpdate = millis();
         }
         else if (message == "music")
         {
@@ -312,11 +340,8 @@ void LuminaireController::applyModeColor()
         b = 0;
         break;
     case LUMI_MODE_IDLE:
-
-        r = 0;
-        g = 0;
-        b = 255;
-        break;
+        // IDLE 模式不立即发送颜色，由呼吸灯循环处理
+        return;
     case LUMI_MODE_MUSIC:
 
         r = 255;
@@ -326,6 +351,42 @@ void LuminaireController::applyModeColor()
     }
 
     sendRGBToAll(r, g, b);
+}
+
+void LuminaireController::updateBreathingEffect()
+{
+    unsigned long now = millis();
+
+    // 每20ms更新一次亮度
+    if (now - lastBreathUpdate > 20)
+    {
+        breathBrightness += breathDirection * 2;
+
+        if (breathBrightness >= 255)
+        {
+            breathBrightness = 255;
+            breathDirection = -1;
+        }
+        else if (breathBrightness <= 0)
+        {
+            breathBrightness = 0;
+            breathDirection = 1;
+        }
+
+        // 应用呼吸效果到IDLE颜色
+        int r = (idleColor >> 16) & 0xFF;
+        int g = (idleColor >> 8) & 0xFF;
+        int b = idleColor & 0xFF;
+
+        // 根据呼吸亮度调整RGB值
+        r = (r * breathBrightness) / 255;
+        g = (g * breathBrightness) / 255;
+        b = (b * breathBrightness) / 255;
+
+        sendRGBToAll(r, g, b);
+
+        lastBreathUpdate = now;
+    }
 }
 
 void LuminaireController::updateMusicSpectrum()

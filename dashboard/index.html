@@ -85,6 +85,44 @@
                             <span>Music</span>
                         </button>
                     </div>
+
+                    <!-- IDLE 模式颜色设置 -->
+                    <div class="idle-color-section"
+                        style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #666;">IDLE Mode Color</h3>
+                        <div class="form-group">
+                            <label for="idleColor">Custom Color:</label>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="color" id="idleColor" value="#0000FF" disabled
+                                    style="width: 60px; height: 40px; border: 2px solid #ddd; border-radius: 4px; cursor: pointer;">
+                                <input type="text" id="idleColorHex" value="#0000FF" disabled
+                                    style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace;">
+                                <button id="applyIdleColorBtn" class="btn btn-primary" disabled
+                                    style="white-space: nowrap;">Apply</button>
+                            </div>
+                        </div>
+                        <div class="idle-color-presets" style="margin-top: 10px;">
+                            <label style="font-size: 12px; color: #666;">Quick Presets:</label>
+                            <div style="display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap;">
+                                <button class="btn btn-sm idle-preset" data-color="#0000FF" disabled
+                                    style="background: #0000FF; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#FF0000" disabled
+                                    style="background: #FF0000; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#00FF00" disabled
+                                    style="background: #00FF00; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#FFFF00" disabled
+                                    style="background: #FFFF00; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#FF00FF" disabled
+                                    style="background: #FF00FF; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#00FFFF" disabled
+                                    style="background: #00FFFF; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#FFA500" disabled
+                                    style="background: #FFA500; width: 40px; height: 30px; padding: 0;"></button>
+                                <button class="btn btn-sm idle-preset" data-color="#FFFFFF" disabled
+                                    style="background: #FFFFFF; width: 40px; height: 30px; padding: 0; border: 1px solid #ccc;"></button>
+                            </div>
+                        </div>
+                    </div>
                 </section>
 
             </div>

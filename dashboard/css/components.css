@@ -138,7 +138,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 20px 16px;
+    padding: 20px 6px;
     border: 2px solid var(--border-color);
     border-radius: 12px;
     background: white;
@@ -147,7 +147,6 @@
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
-    min-height: 100px;
     position: relative;
     overflow: hidden;
 }

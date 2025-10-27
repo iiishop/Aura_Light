@@ -125,6 +125,53 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
     return;
   }
 
+  // IDLE 颜色设置（全局，应用到两个控制器）
+  if (topicStr.endsWith("/idle/color"))
+  {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    String colorStr = String(message);
+
+    // 验证颜色格式 #RRGGBB
+    if (colorStr.length() == 7 && colorStr.charAt(0) == '#')
+    {
+      // 转换为 uint32_t
+      long colorValue = strtol(colorStr.substring(1).c_str(), NULL, 16);
+      uint32_t color = (uint32_t)colorValue;
+
+      // 同时应用到两个控制器
+      // 1. Local controller 通过它自己的 handleMQTTMessage 处理
+      lightControl.handleMQTTMessage(topic, payload, length);
+
+      // 2. Luminaire controller 直接设置颜色
+      luminaireControl.setIdleColor(color);
+
+      // 如果 Luminaire 当前是 IDLE 模式且开启，立即更新显示
+      if (luminaireControl.isOn() && luminaireControl.getMode() == LUMI_MODE_IDLE)
+      {
+        // 重新应用 IDLE 颜色
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+        luminaireControl.sendRGBToAll(r, g, b);
+
+        Serial.print("[Luminaire] IDLE color updated to: ");
+        Serial.println(colorStr);
+      }
+
+      Serial.print("[System] IDLE color set to: ");
+      Serial.print(colorStr);
+      Serial.println(" (applied to both controllers)");
+    }
+    else
+    {
+      Serial.print("[System] Invalid IDLE color format: ");
+      Serial.println(colorStr);
+    }
+    return;
+  }
+
   if (currentController == MODE_LOCAL)
   {
     lightControl.handleMQTTMessage(topic, payload, length);
@@ -219,7 +266,7 @@ void setup()
 {
 
   Serial.begin(9600);
-  
+
   // 初始化开机进度条
   initBootProgressBar();
   updateBootProgress("Serial initialized");
@@ -266,6 +313,14 @@ void setup()
   Serial.println("[System] Initializing Luminaire controller...");
   luminaireControl.begin(&mqtt, LUMINAIRE_ID);
   luminaireControl.setActive(false);
+
+  // 同步两个控制器的 IDLE 颜色（使用 lightControl 的默认颜色）
+  String defaultIdleColor = lightControl.getIdleColor();
+  long colorValue = strtol(defaultIdleColor.substring(1).c_str(), NULL, 16);
+  luminaireControl.setIdleColor((uint32_t)colorValue);
+  Serial.print("[System] IDLE color synchronized: ");
+  Serial.println(defaultIdleColor);
+
   updateBootProgress("Controllers ready");
 
   // 初始化音频分析器
@@ -289,6 +344,9 @@ void setup()
     lightControl.publishState();
 
     mqtt.publishInfo("controller", "local", true);
+
+    // 发布 IDLE 模式的初始颜色
+    mqtt.publishInfo("idle/color", lightControl.getIdleColor().c_str(), true);
   }
 
   Serial.println("\n[System] Initializing weather manager...");

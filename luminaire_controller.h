@@ -40,8 +40,16 @@ private:
     LuminaireState state;
     LuminaireMode mode;
 
+    uint32_t idleColor; // 自定义 IDLE 模式颜色
+
+    // 呼吸灯效果变量
+    unsigned long lastBreathUpdate;
+    int breathDirection;
+    int breathBrightness;
+
     void applyModeColor();
-    void updateMusicSpectrum(); // 新增：更新 Music 频谱显示
+    void updateMusicSpectrum();   // 新增：更新 Music 频谱显示
+    void updateBreathingEffect(); // 新增：更新 IDLE 呼吸灯效果
     void getRGBFromHex(const String &hexColor, int &r, int &g, int &b);
 
 public:
@@ -76,6 +84,18 @@ public:
     const char *getStateString() const
     {
         return (state == LUMI_ON) ? "on" : "off";
+    }
+
+    // 设置和获取 IDLE 颜色
+    void setIdleColor(uint32_t color) { idleColor = color; }
+    String getIdleColor() const
+    {
+        char hex[8];
+        sprintf(hex, "#%02X%02X%02X",
+                (uint8_t)((idleColor >> 16) & 0xFF),
+                (uint8_t)((idleColor >> 8) & 0xFF),
+                (uint8_t)(idleColor & 0xFF));
+        return String(hex);
     }
 };
 
