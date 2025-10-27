@@ -219,12 +219,7 @@ void setup()
 {
 
   Serial.begin(9600);
-
-  while (!Serial)
-  {
-    ;
-  }
-
+  
   // 初始化开机进度条
   initBootProgressBar();
   updateBootProgress("Serial initialized");
