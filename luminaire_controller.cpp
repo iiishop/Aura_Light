@@ -44,7 +44,13 @@ void LuminaireController::loop()
     // 只在 Music 模式且激活时更新
     if (isActive && state == LUMI_ON && mode == LUMI_MODE_MUSIC && musicMode != nullptr && audioAnalyzer != nullptr)
     {
-        updateMusicSpectrum();
+        // 限制更新频率为每秒约 20 次（避免阻塞主循环）
+        static unsigned long lastUpdate = 0;
+        if (millis() - lastUpdate > 50) // 50ms = 20 FPS
+        {
+            updateMusicSpectrum();
+            lastUpdate = millis();
+        }
     }
 }
 
@@ -76,27 +82,17 @@ void LuminaireController::sendRGBToPixel(int r, int g, int b, int pixel)
         return;
     }
 
-    if (!mqtt || !mqtt->isConnected())
-    {
-        Serial.println("[Luminaire] ✗ MQTT not connected");
-        return;
-    }
+    // MQTT 连接检查已移至 updateMusicSpectrum() 开始处
+    // 这里直接发送以避免重复检查和日志洪水
 
     RGBpayload[pixel * 3 + 0] = (byte)r;
     RGBpayload[pixel * 3 + 1] = (byte)g;
     RGBpayload[pixel * 3 + 2] = (byte)b;
 
-    if (mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false))
-    {
-        Serial.print("[Luminaire] ✓ Sent RGB(");
-        Serial.print(r);
-        Serial.print(",");
-        Serial.print(g);
-        Serial.print(",");
-        Serial.print(b);
-        Serial.print(") to pixel ");
-        Serial.println(pixel);
-    }
+    mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false);
+
+    // 日志已禁用（Music模式下太频繁）
+    // Serial.print("[Luminaire] ✓ Sent RGB(");
 }
 
 void LuminaireController::sendRGBToAll(int r, int g, int b)
@@ -120,16 +116,10 @@ void LuminaireController::sendRGBToAll(int r, int g, int b)
         RGBpayload[pixel * 3 + 2] = (byte)b;
     }
 
-    if (mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false))
-    {
-        Serial.print("[Luminaire] ✓ Sent RGB(");
-        Serial.print(r);
-        Serial.print(",");
-        Serial.print(g);
-        Serial.print(",");
-        Serial.print(b);
-        Serial.println(") to ALL pixels");
-    }
+    mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false);
+
+    // 日志已禁用（Music模式下太频繁）
+    // Serial.print("[Luminaire] ✓ Sent RGB(");
 }
 
 void LuminaireController::clear()
@@ -340,6 +330,19 @@ void LuminaireController::applyModeColor()
 
 void LuminaireController::updateMusicSpectrum()
 {
+    // 提前检查 MQTT 连接，避免每个像素都检查
+    if (!mqtt || !mqtt->isConnected())
+    {
+        static unsigned long lastWarning = 0;
+        // 每 5 秒最多警告一次，避免日志洪水
+        if (millis() - lastWarning > 5000)
+        {
+            Serial.println("[Luminaire] ✗ MQTT not connected, skipping spectrum update");
+            lastWarning = millis();
+        }
+        return;
+    }
+
     // 72 灯布局：12 列（频段）× 6 行（高度）
     // LED 索引映射（每列倒序）：
     // 列 0: 5,4,3,2,1,0 (底→顶)
@@ -401,31 +404,39 @@ void LuminaireController::updateMusicSpectrum()
             // 计算当前块在这一列中的位置（0=底部，5=顶部）
             int blockPosition = 5 - row;
 
+            int r, g, b;
+
             if (blockPosition < fullBlocks)
             {
                 // 完全点亮：使用该行的颜色，全亮度
-                sendRGBToPixel(
-                    rowColors[row][0],
-                    rowColors[row][1],
-                    rowColors[row][2],
-                    ledIndex);
+                r = rowColors[row][0];
+                g = rowColors[row][1];
+                b = rowColors[row][2];
             }
             else if (blockPosition == fullBlocks && partialBrightness > 0.05)
             {
                 // 部分点亮：使用该行的颜色，按比例亮度
-                int r = (int)(rowColors[row][0] * partialBrightness);
-                int g = (int)(rowColors[row][1] * partialBrightness);
-                int b = (int)(rowColors[row][2] * partialBrightness);
-
-                sendRGBToPixel(r, g, b, ledIndex);
+                r = (int)(rowColors[row][0] * partialBrightness);
+                g = (int)(rowColors[row][1] * partialBrightness);
+                b = (int)(rowColors[row][2] * partialBrightness);
             }
             else
             {
                 // 熄灭：完全关闭
-                sendRGBToPixel(0, 0, 0, ledIndex);
+                r = 0;
+                g = 0;
+                b = 0;
             }
+
+            // 直接更新 payload 数组，不发送
+            RGBpayload[ledIndex * 3 + 0] = (byte)r;
+            RGBpayload[ledIndex * 3 + 1] = (byte)g;
+            RGBpayload[ledIndex * 3 + 2] = (byte)b;
         }
     }
+
+    // 所有像素更新完成后，只发送一次 MQTT 消息
+    mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false);
 }
 
 void LuminaireController::getRGBFromHex(const String &hexColor, int &r, int &g, int &b)

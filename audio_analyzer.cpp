@@ -224,13 +224,13 @@ float AudioAnalyzer::volumeToDecibel(float vol) const
     }
 
     // 优化的两点线性插值法
-    // 参考点 1: 0.17V → 35 dB (安静)
-    // 参考点 2: 2.50V → 80 dB (大声)
+    // 参考点 1: 0.17V → 30 dB (安静)
+    // 参考点 2: 2.50V → 65 dB (大声)
 
     const float voltage_quiet = 0.17; // 安静环境参考电压
     const float voltage_loud = 2.50;  // 大声环境参考电压
-    const float db_quiet = 35.0;      // 对应的分贝值
-    const float db_loud = 80.0;       // 对应的分贝值
+    const float db_quiet = 30.0;      // 对应的分贝值（降低）
+    const float db_loud = 65.0;       // 对应的分贝值（降低）
 
     float absoluteDb;
 

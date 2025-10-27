@@ -459,8 +459,8 @@ void loop()
         audioMsg += "," + String(spectrum[i], 2);
       }
 
-      // 发布到 MQTT (已禁用以减少日志输出)
-      // mqtt.publishInfo("audio/data", audioMsg.c_str(), false);
+      // 发布到 MQTT
+      mqtt.publishInfo("audio/data", audioMsg.c_str(), false);
     }
     lastAudioPublish = millis();
   }
