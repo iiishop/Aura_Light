@@ -97,11 +97,14 @@ bool MQTTManager::connect()
         // 订阅音频控制主题（不包括 /info/audio/）
         subscribe((baseTopic + "/audio/volume_range").c_str());
 
+        // 订阅天气信息主题（用于Luminaire天气可视化）
+        subscribe((baseTopic + "/info/weather").c_str());
+
         // 订阅刷新请求
         subscribe((baseTopic + "/refresh").c_str());
 
         Serial.print("[MQTT] ✓ Subscribed to: ");
-        Serial.println(baseTopic + "/{status,mode,controller,debug/#,idle/color,audio/volume_range,refresh}");
+        Serial.println(baseTopic + "/{status,mode,controller,debug/#,idle/color,audio/volume_range,info/weather,refresh}");
 
         Serial.println("[MQTT] ========================================");
         Serial.println("[MQTT] MQTT connection established successfully");

@@ -2,68 +2,68 @@
 
 class WeatherManager {
     constructor() {
-        this.city = 'London'; 
+        this.city = 'London';
 
-        
+
         this.weatherIcons = {
-            '113': '☀',  
-            '116': '⛅',  
-            '119': '☁',  
-            '122': '☁',  
-            '143': '🌫',  
-            '176': '🌦',  
-            '179': '🌨',  
-            '182': '🌨',  
-            '185': '🌨',  
-            '200': '⛈',  
-            '227': '🌨',  
-            '230': '❄',  
-            '248': '🌫',  
-            '260': '🌫',  
-            '263': '🌦',  
-            '266': '🌧',  
-            '281': '🌨',  
-            '284': '🌨',  
-            '293': '🌦',  
-            '296': '🌧',  
-            '299': '🌧',  
-            '302': '🌧',  
-            '305': '🌧',  
-            '308': '🌧',  
-            '311': '🌨',  
-            '314': '🌨',  
-            '317': '🌨',  
-            '320': '🌨',  
-            '323': '🌨',  
-            '326': '🌨',  
-            '329': '🌨',  
-            '332': '❄',  
-            '335': '❄',  
-            '338': '❄',  
-            '350': '🌨',  
-            '353': '🌦',  
-            '356': '🌧',  
-            '359': '🌧',  
-            '362': '🌨',  
-            '365': '🌨',  
-            '368': '🌨',  
-            '371': '❄',  
-            '374': '🌨',  
-            '377': '🌨',  
-            '386': '⛈',  
-            '389': '⛈',  
-            '392': '⛈',  
-            '395': '⛈'   
+            '113': '☀',
+            '116': '⛅',
+            '119': '☁',
+            '122': '☁',
+            '143': '🌫',
+            '176': '🌦',
+            '179': '🌨',
+            '182': '🌨',
+            '185': '🌨',
+            '200': '⛈',
+            '227': '🌨',
+            '230': '❄',
+            '248': '🌫',
+            '260': '🌫',
+            '263': '🌦',
+            '266': '🌧',
+            '281': '🌨',
+            '284': '🌨',
+            '293': '🌦',
+            '296': '🌧',
+            '299': '🌧',
+            '302': '🌧',
+            '305': '🌧',
+            '308': '🌧',
+            '311': '🌨',
+            '314': '🌨',
+            '317': '🌨',
+            '320': '🌨',
+            '323': '🌨',
+            '326': '🌨',
+            '329': '🌨',
+            '332': '❄',
+            '335': '❄',
+            '338': '❄',
+            '350': '🌨',
+            '353': '🌦',
+            '356': '🌧',
+            '359': '🌧',
+            '362': '🌨',
+            '365': '🌨',
+            '368': '🌨',
+            '371': '❄',
+            '374': '🌨',
+            '377': '🌨',
+            '386': '⛈',
+            '389': '⛈',
+            '392': '⛈',
+            '395': '⛈'
         };
     }
 
-    
+
     setCity(city) {
         this.city = city || 'London';
         console.log('[Weather] City set to:', this.city);
     }
 
-    
+
     handleWeatherData(jsonString) {
         try {
             const data = JSON.parse(jsonString);
@@ -75,20 +75,20 @@ class WeatherManager {
         }
     }
 
-    
+
     displayWeather(data) {
         console.log('[Weather] Displaying weather:', data);
 
-        
+
         const tempValue = document.getElementById('tempValue');
         if (tempValue) {
             tempValue.textContent = data.temp_C || '--';
         }
 
-        
+
         const weatherDesc = document.getElementById('weatherDesc');
         if (weatherDesc) {
-            
+
             if (data.weatherDesc_zh) {
                 weatherDesc.textContent = data.weatherDesc_zh;
             } else {
@@ -96,13 +96,13 @@ class WeatherManager {
             }
         }
 
-        
+
         const weatherLocation = document.getElementById('weatherLocation');
         if (weatherLocation) {
             weatherLocation.textContent = this.city;
         }
 
-        
+
         const weatherIcon = document.getElementById('weatherIcon');
         if (weatherIcon) {
             const iconCode = data.weatherCode;
@@ -110,7 +110,7 @@ class WeatherManager {
             weatherIcon.textContent = icon;
             weatherIcon.className = 'weather-icon';
 
-            
+
             if (['113'].includes(iconCode)) {
                 weatherIcon.classList.add('sunny');
             } else if (['116', '119', '122'].includes(iconCode)) {
@@ -120,13 +120,13 @@ class WeatherManager {
             }
         }
 
-        
+
         const humidity = document.getElementById('humidity');
         if (humidity) {
             humidity.textContent = data.humidity ? `${data.humidity}%` : '--%';
         }
 
-        
+
         const windSpeed = document.getElementById('windSpeed');
         if (windSpeed) {
             if (data.windspeedKmph && data.winddir16Point) {
@@ -136,20 +136,36 @@ class WeatherManager {
             }
         }
 
-        
+
         const visibility = document.getElementById('visibility');
         if (visibility) {
             visibility.textContent = data.visibility ? `${data.visibility} km` : '--';
         }
 
-        
+
         const feelsLike = document.getElementById('feelsLike');
         if (feelsLike) {
             feelsLike.textContent = data.FeelsLikeC ? `${data.FeelsLikeC}°C` : '--';
         }
+
+        // Cloud Cover
+        const cloudCover = document.getElementById('cloudCover');
+        if (cloudCover) {
+            cloudCover.textContent = data.cloudcover ? `${data.cloudcover}%` : '--%';
+        }
+
+        // Precipitation
+        const precipitation = document.getElementById('precipitation');
+        if (precipitation) {
+            if (data.precipMM !== undefined && data.precipMM !== null) {
+                precipitation.textContent = `${data.precipMM} mm`;
+            } else {
+                precipitation.textContent = '-- mm';
+            }
+        }
     }
 
-    
+
     showError(message) {
         console.error('[Weather] Error:', message);
 

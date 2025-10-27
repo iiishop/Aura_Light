@@ -172,6 +172,28 @@ void mqttMessageReceived(char *topic, byte *payload, unsigned int length)
     return;
   }
 
+  // 天气数据转发给Luminaire控制器（用于Weather模式可视化）
+  if (topicStr.endsWith("/info/weather"))
+  {
+    char message[length + 1];
+    memcpy(message, payload, length);
+    message[length] = '\0';
+    String weatherJson = String(message);
+
+    // 解析天气JSON并更新Luminaire控制器
+    Serial.println("[System] Weather data received, updating Luminaire...");
+
+    // 简单解析主要字段（完整解析可以用ArduinoJson，这里简化处理）
+    // 格式示例: {"temp_C":"20","FeelsLikeC":"18","humidity":"65",...}
+
+    // 由于Arduino内存限制，这里直接调用updateWeatherData
+    // 实际解析在luminaire_controller中处理，或者这里提取关键值
+    luminaireControl.updateWeatherData(weatherJson);
+
+    Serial.println("[System] Weather data forwarded to Luminaire controller");
+    return;
+  }
+
   if (currentController == MODE_LOCAL)
   {
     lightControl.handleMQTTMessage(topic, payload, length);
@@ -351,7 +373,39 @@ void setup()
 
   Serial.println("\n[System] Initializing weather manager...");
   weatherManager.begin(&mqtt, systemCity);
-  updateBootProgress("Weather ready");
+  updateBootProgress("Weather initialized");
+
+  // 主动获取第一次天气数据（阻塞等待，包含重试机制）
+  Serial.println("[System] Fetching initial weather data...");
+  if (mqtt.isConnected())
+  {
+    weatherManager.fetchAndPublishWeather();
+
+    // 等待天气数据确认接收（最多等待60秒，因为包含3次重试）
+    // 每次重试最长约20秒（连接15s+响应12s+等待2s），3次最长60秒
+    unsigned long weatherTimeout = millis();
+    while (!weatherManager.hasReceivedWeather() && (millis() - weatherTimeout < 60000))
+    {
+      delay(500);
+      Serial.print(".");
+    }
+
+    if (weatherManager.hasReceivedWeather())
+    {
+      Serial.println("\n[Weather] ✓ Initial weather data received");
+      updateBootProgress("Weather data received");
+    }
+    else
+    {
+      Serial.println("\n[Weather] ⚠ Weather fetch timeout, continuing...");
+      updateBootProgress("Weather timeout");
+    }
+  }
+  else
+  {
+    Serial.println("[Weather] ⚠ MQTT not connected, skipping weather fetch");
+    updateBootProgress("Weather skipped");
+  }
 
   Serial.println("\n[System] Initializing button manager on pin 1...");
   buttonManager.begin(&mqtt, &lightControl, &luminaireControl, (int *)&currentController);

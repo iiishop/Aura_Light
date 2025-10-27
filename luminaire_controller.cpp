@@ -1,6 +1,7 @@
 #include "luminaire_controller.h"
 #include "music_mode.h"
 #include "audio_analyzer.h"
+#include <ArduinoJson.h>
 
 LuminaireController::LuminaireController()
     : mqtt(nullptr),
@@ -12,7 +13,20 @@ LuminaireController::LuminaireController()
       idleColor(0x0000FF), // 默认蓝色
       lastBreathUpdate(0),
       breathDirection(1),
-      breathBrightness(0)
+      breathBrightness(0),
+      currentTemp(20.0),
+      feelsLikeTemp(20.0),
+      humidity(50),
+      windSpeed(0),
+      windDirection("N"),
+      visibility(10),
+      cloudCover(0),
+      precipitation(0.0),
+      weatherCode("113"),
+      weatherDesc("Sunny"),
+      lastWeatherUpdate(0),
+      lastWindUpdate(0),
+      windAnimationOffset(0)
 {
 
     memset(RGBpayload, 0, LUMINAIRE_PAYLOAD_SIZE);
@@ -66,6 +80,11 @@ void LuminaireController::loop()
     else if (mode == LUMI_MODE_IDLE)
     {
         updateBreathingEffect();
+    }
+    // WEATHER 模式天气可视化更新
+    else if (mode == LUMI_MODE_WEATHER)
+    {
+        updateWeatherVisualization();
     }
 }
 
@@ -513,5 +532,455 @@ void LuminaireController::getRGBFromHex(const String &hexColor, int &r, int &g, 
         r = strtol(color.substring(0, 2).c_str(), NULL, 16);
         g = strtol(color.substring(2, 4).c_str(), NULL, 16);
         b = strtol(color.substring(4, 6).c_str(), NULL, 16);
+    }
+}
+
+// ========================================
+// 伞状LED映射工具函数
+// ========================================
+
+// 获取指定伞骨和位置的LED编号
+// rib: 0-11 (12条伞骨)
+// position: 0-5 (0=边缘顶部, 5=中心底部)
+int LuminaireController::getUmbrellaLED(int rib, int position)
+{
+    if (rib < 0 || rib >= 12 || position < 0 || position >= 6)
+    {
+        return -1;
+    }
+    return rib * 6 + position; // 每条伞骨6个LED (LED 0-5)
+}
+
+// 设置单个伞骨LED的颜色
+void LuminaireController::setUmbrellaPixel(int rib, int position, int r, int g, int b)
+{
+    int ledIndex = getUmbrellaLED(rib, position);
+    if (ledIndex >= 0 && ledIndex < LUMINAIRE_NUM_LEDS)
+    {
+        RGBpayload[ledIndex * 3 + 0] = (byte)r;
+        RGBpayload[ledIndex * 3 + 1] = (byte)g;
+        RGBpayload[ledIndex * 3 + 2] = (byte)b;
+    }
+}
+
+// 设置径向环（所有伞骨的同一位置）
+void LuminaireController::setRadialRing(int position, int r, int g, int b)
+{
+    for (int rib = 0; rib < 12; rib++)
+    {
+        setUmbrellaPixel(rib, position, r, g, b);
+    }
+}
+
+// ========================================
+// 天气数据更新
+// ========================================
+
+void LuminaireController::updateWeatherData(const String &weatherJson)
+{
+    Serial.println("[Luminaire Weather] Parsing weather JSON...");
+
+    // 解析JSON
+    DynamicJsonDocument doc(1024);
+    DeserializationError error = deserializeJson(doc, weatherJson);
+
+    if (error)
+    {
+        Serial.print("[Luminaire Weather] JSON parse error: ");
+        Serial.println(error.c_str());
+        return;
+    }
+
+    // 提取天气数据
+    if (doc.containsKey("temp_C"))
+    {
+        currentTemp = doc["temp_C"].as<String>().toFloat();
+    }
+
+    if (doc.containsKey("FeelsLikeC"))
+    {
+        feelsLikeTemp = doc["FeelsLikeC"].as<String>().toFloat();
+    }
+
+    if (doc.containsKey("humidity"))
+    {
+        humidity = doc["humidity"].as<String>().toInt();
+    }
+
+    if (doc.containsKey("windspeedKmph"))
+    {
+        windSpeed = doc["windspeedKmph"].as<String>().toInt();
+    }
+
+    if (doc.containsKey("winddir16Point"))
+    {
+        windDirection = doc["winddir16Point"].as<String>();
+    }
+
+    if (doc.containsKey("visibility"))
+    {
+        visibility = doc["visibility"].as<String>().toInt();
+    }
+
+    if (doc.containsKey("cloudcover"))
+    {
+        cloudCover = doc["cloudcover"].as<String>().toInt();
+    }
+
+    if (doc.containsKey("precipMM"))
+    {
+        precipitation = doc["precipMM"].as<String>().toFloat();
+    }
+
+    if (doc.containsKey("weatherCode"))
+    {
+        weatherCode = doc["weatherCode"].as<String>();
+    }
+
+    if (doc.containsKey("weatherDesc"))
+    {
+        weatherDesc = doc["weatherDesc"].as<String>();
+    }
+
+    Serial.println("[Luminaire Weather] Weather data updated:");
+    Serial.print("  Temperature: ");
+    Serial.print(currentTemp);
+    Serial.print("°C (Feels like ");
+    Serial.print(feelsLikeTemp);
+    Serial.println("°C)");
+    Serial.print("  Humidity: ");
+    Serial.print(humidity);
+    Serial.println("%");
+    Serial.print("  Wind: ");
+    Serial.print(windSpeed);
+    Serial.print(" km/h ");
+    Serial.println(windDirection);
+    Serial.print("  Visibility: ");
+    Serial.print(visibility);
+    Serial.println(" km");
+    Serial.print("  Cloud cover: ");
+    Serial.print(cloudCover);
+    Serial.println("%");
+    Serial.print("  Weather: ");
+    Serial.print(weatherDesc);
+    Serial.print(" (");
+    Serial.print(weatherCode);
+    Serial.println(")");
+}
+
+// ========================================
+// 天气渲染函数（重新设计）
+// ========================================
+
+// 第一行：湿度 - 蓝色，湿度越大越亮
+void LuminaireController::renderHumidity()
+{
+    // 湿度0-100%映射到蓝色亮度
+    float humidityNorm = humidity / 100.0;
+
+    int r = 0;
+    int g = 0;
+    int b = (int)(255 * humidityNorm);
+
+    setRadialRing(0, r, g, b);
+}
+
+// 第二行：风速 - 白色追逐光点
+void LuminaireController::renderWindSpeed()
+{
+    unsigned long now = millis();
+
+    // 根据风速决定更新频率和光点数量
+    int updateInterval;
+    int numDots;
+    int brightness1, brightness2, brightness3;
+
+    if (windSpeed == 0)
+    {
+        // 风速为0：一个静止的白点
+        numDots = 1;
+        updateInterval = 999999; // 不移动
+        brightness1 = 150;
+        brightness2 = 0;
+        brightness3 = 0;
+    }
+    else if (windSpeed <= 5)
+    {
+        // 微风：一个缓慢移动的光点
+        numDots = 1;
+        updateInterval = 600;
+        brightness1 = 180;
+        brightness2 = 0;
+        brightness3 = 0;
+    }
+    else if (windSpeed <= 15)
+    {
+        // 和风：两个光点，中速
+        numDots = 2;
+        updateInterval = 300;
+        brightness1 = 200;
+        brightness2 = 120;
+        brightness3 = 0;
+    }
+    else if (windSpeed <= 30)
+    {
+        // 强风：三个光点，快速，有速度感
+        numDots = 3;
+        updateInterval = 150;
+        brightness1 = 150; // 第一个暗
+        brightness2 = 255; // 第二个亮
+        brightness3 = 150; // 第三个暗
+    }
+    else
+    {
+        // 疾风：三个光点，非常快，强烈速度感
+        numDots = 3;
+        updateInterval = 80;
+        brightness1 = 120; // 第一个更暗
+        brightness2 = 255; // 第二个最亮
+        brightness3 = 120; // 第三个更暗
+    }
+
+    // 检查是否需要更新
+    if (windSpeed > 0 && now - lastWindUpdate < updateInterval)
+    {
+        return; // 保持当前状态
+    }
+
+    if (windSpeed > 0)
+    {
+        lastWindUpdate = now;
+        windAnimationOffset = (windAnimationOffset + 1) % 12;
+    }
+
+    // 清除第二行
+    setRadialRing(1, 0, 0, 0);
+
+    // 绘制光点
+    if (numDots >= 1)
+    {
+        int rib1 = windAnimationOffset;
+        setUmbrellaPixel(rib1, 1, brightness1, brightness1, brightness1);
+    }
+    if (numDots >= 2)
+    {
+        int rib2 = (windAnimationOffset + 6) % 12; // 对面位置
+        setUmbrellaPixel(rib2, 1, brightness2, brightness2, brightness2);
+    }
+    if (numDots >= 3)
+    {
+        int rib3 = (windAnimationOffset + 4) % 12; // 三分之一位置
+        setUmbrellaPixel(rib3, 1, brightness3, brightness3, brightness3);
+    }
+}
+
+// 第三行：可见度 - 白色，5km=0%, 10km=50%, 20km=100%
+void LuminaireController::renderVisibility()
+{
+    int brightness;
+
+    if (visibility <= 5)
+    {
+        brightness = 0; // 低于5km，0%
+    }
+    else if (visibility >= 20)
+    {
+        brightness = 255; // 高于20km，100%
+    }
+    else
+    {
+        // 5-20km线性映射到0-255
+        brightness = (int)((visibility - 5) / 15.0 * 255);
+    }
+
+    setRadialRing(2, brightness, brightness, brightness);
+}
+
+// 第四行：当前温度 - 白/蓝/绿/黄/红，温度越高越亮
+void LuminaireController::renderTemperature()
+{
+    int r, g, b;
+
+    if (currentTemp < -10)
+    {
+        // < -10°C: 最亮白光
+        r = 255;
+        g = 255;
+        b = 255;
+    }
+    else if (currentTemp < 0)
+    {
+        // (-10, 0)°C: 白光，温度越低越亮
+        float ratio = (currentTemp + 10) / 10.0;   // 0.0到1.0
+        int brightness = (int)(255 * (1 - ratio)); // 越低越亮
+        r = brightness;
+        g = brightness;
+        b = brightness;
+    }
+    else if (currentTemp < 10)
+    {
+        // (0, 10)°C: 蓝光，温度越高越亮
+        float ratio = currentTemp / 10.0;
+        r = 0;
+        g = 0;
+        b = (int)(255 * ratio);
+    }
+    else if (currentTemp < 20)
+    {
+        // (10, 20)°C: 绿光，温度越高越亮
+        float ratio = (currentTemp - 10) / 10.0;
+        r = 0;
+        g = (int)(255 * ratio);
+        b = 0;
+    }
+    else if (currentTemp < 30)
+    {
+        // (20, 30)°C: 黄光，温度越高越亮
+        float ratio = (currentTemp - 20) / 10.0;
+        r = (int)(255 * ratio);
+        g = (int)(255 * ratio);
+        b = 0;
+    }
+    else if (currentTemp < 40)
+    {
+        // (30, 40)°C: 红光，温度越高越亮
+        float ratio = (currentTemp - 30) / 10.0;
+        r = (int)(255 * ratio);
+        g = 0;
+        b = 0;
+    }
+    else
+    {
+        // >= 40°C: 最亮红光
+        r = 255;
+        g = 0;
+        b = 0;
+    }
+
+    setRadialRing(3, r, g, b);
+}
+
+// 第五行：体感温度 - 闪烁的aqua或橙黄色
+void LuminaireController::renderFeelsLike()
+{
+    unsigned long now = millis();
+
+    float tempDiff = feelsLikeTemp - currentTemp;
+
+    // 闪烁周期：500ms
+    bool isOn = (now % 1000) < 500;
+
+    int r, g, b;
+
+    if (abs(tempDiff) < 0.5)
+    {
+        // 温差很小，不显示
+        r = 0;
+        g = 0;
+        b = 0;
+    }
+    else if (tempDiff < 0)
+    {
+        // 体感更冷：闪烁aqua色 (青色)
+        if (isOn)
+        {
+            r = 0;
+            g = 255;
+            b = 255;
+        }
+        else
+        {
+            r = 0;
+            g = 0;
+            b = 0;
+        }
+    }
+    else
+    {
+        // 体感更热：闪烁橙黄色
+        if (isOn)
+        {
+            r = 255;
+            g = 165;
+            b = 0;
+        }
+        else
+        {
+            r = 0;
+            g = 0;
+            b = 0;
+        }
+    }
+
+    setRadialRing(4, r, g, b);
+}
+
+// 第六行：云量 - 棕色，云量越多越深
+void LuminaireController::renderCloudCover()
+{
+    // 云量0-100%映射到棕色深度
+    float cloudNorm = cloudCover / 100.0;
+
+    // 棕色 RGB(165, 42, 42) - 深棕色
+    int r = (int)(165 * cloudNorm);
+    int g = (int)(42 * cloudNorm);
+    int b = (int)(42 * cloudNorm);
+
+    setRadialRing(5, r, g, b);
+}
+
+// 主天气可视化更新函数
+void LuminaireController::updateWeatherVisualization()
+{
+    unsigned long now = millis();
+
+    // 限制更新频率
+    if (now - lastWeatherUpdate < 50)
+    {
+        return;
+    }
+    lastWeatherUpdate = now;
+
+    // 调试：每5秒打印一次天气数据
+    static unsigned long lastDebugPrint = 0;
+    if (now - lastDebugPrint > 5000)
+    {
+        Serial.println("\n[Weather Viz] Current data:");
+        Serial.print("  Temp: ");
+        Serial.print(currentTemp);
+        Serial.println("°C");
+        Serial.print("  Feels: ");
+        Serial.print(feelsLikeTemp);
+        Serial.println("°C");
+        Serial.print("  Humidity: ");
+        Serial.print(humidity);
+        Serial.println("%");
+        Serial.print("  Wind: ");
+        Serial.print(windSpeed);
+        Serial.println(" km/h");
+        Serial.print("  Visibility: ");
+        Serial.print(visibility);
+        Serial.println(" km");
+        Serial.print("  Clouds: ");
+        Serial.print(cloudCover);
+        Serial.println("%");
+        lastDebugPrint = now;
+    }
+
+    // 清空payload
+    memset(RGBpayload, 0, LUMINAIRE_PAYLOAD_SIZE);
+
+    // 按层渲染（新的6行设计）
+    renderHumidity();    // 第一行：湿度 (位置0)
+    renderWindSpeed();   // 第二行：风速 (位置1)
+    renderVisibility();  // 第三行：可见度 (位置2)
+    renderTemperature(); // 第四行：当前温度 (位置3)
+    renderFeelsLike();   // 第五行：体感温度 (位置4)
+    renderCloudCover();  // 第六行：云量 (位置5)
+
+    // 发送到MQTT
+    if (mqtt && mqtt->isConnected())
+    {
+        mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false);
     }
 }

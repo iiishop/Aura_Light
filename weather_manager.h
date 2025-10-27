@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-class MQTTManager; 
+class MQTTManager;
 
 class WeatherManager
 {
@@ -11,13 +11,14 @@ private:
     MQTTManager *mqtt;
     String city;
     unsigned long lastUpdate;
-    const unsigned long UPDATE_INTERVAL = 600000; 
+    const unsigned long UPDATE_INTERVAL = 600000;
 
 public:
     WeatherManager();
     void begin(MQTTManager *mqttManager, const String &cityName);
     void loop();
     void fetchAndPublishWeather();
+    bool hasReceivedWeather() const; // 检查是否已接收到天气数据
 };
 
 #endif

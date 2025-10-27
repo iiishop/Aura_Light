@@ -47,10 +47,41 @@ private:
     int breathDirection;
     int breathBrightness;
 
+    // 天气可视化相关变量
+    float currentTemp;    // 当前温度
+    float feelsLikeTemp;  // 体感温度
+    int humidity;         // 湿度
+    int windSpeed;        // 风速 (km/h)
+    String windDirection; // 风向
+    int visibility;       // 能见度 (km)
+    int cloudCover;       // 云量 (%)
+    float precipitation;  // 降水量 (mm)
+    String weatherCode;   // 天气代码
+    String weatherDesc;   // 天气描述
+
+    unsigned long lastWeatherUpdate;
+    unsigned long lastWindUpdate;
+    int windAnimationOffset; // 风速动画偏移
+
     void applyModeColor();
-    void updateMusicSpectrum();   // 新增：更新 Music 频谱显示
-    void updateBreathingEffect(); // 新增：更新 IDLE 呼吸灯效果
+    void updateMusicSpectrum();        // 新增：更新 Music 频谱显示
+    void updateBreathingEffect();      // 新增：更新 IDLE 呼吸灯效果
+    void updateWeatherVisualization(); // 新增：更新天气可视化
     void getRGBFromHex(const String &hexColor, int &r, int &g, int &b);
+
+    // 伞状LED映射工具函数
+    int getUmbrellaLED(int rib, int position);                         // 获取指定伞骨和位置的LED编号
+    void setUmbrellaPixel(int rib, int position, int r, int g, int b); // 设置单个LED
+    void setRadialRing(int position, int r, int g, int b);             // 设置径向环（所有伞骨的同一位置）
+
+    // 天气可视化渲染函数（新的6行设计）
+    void renderHumidity();         // 第一行：湿度（蓝色，越大越亮）
+    void renderWindSpeed();        // 第二行：风速（白色追逐光点）
+    void renderVisibility();       // 第三行：可见度（白色，5-20km映射）
+    void renderTemperature();      // 第四行：当前温度（白/蓝/绿/黄/红渐变）
+    void renderFeelsLike();        // 第五行：体感温度（闪烁aqua或橙黄）
+    void renderCloudCover();       // 第六行：云量（棕色，越多越深）
+    void renderWeatherAnimation(); // 占位函数（已移除）
 
 public:
     LuminaireController();
@@ -71,6 +102,9 @@ public:
     void sendRGBToAll(int r, int g, int b);
 
     void clear();
+
+    // 天气数据更新接口
+    void updateWeatherData(const String &weatherJson); // 更新天气数据
 
     int getNumLEDs() const { return LUMINAIRE_NUM_LEDS; }
 
