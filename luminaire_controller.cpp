@@ -1,12 +1,14 @@
 #include "luminaire_controller.h"
 #include "music_mode.h"
 #include "audio_analyzer.h"
+#include "weather_animation.h"
 #include <ArduinoJson.h>
 
 LuminaireController::LuminaireController()
     : mqtt(nullptr),
       musicMode(nullptr),
       audioAnalyzer(nullptr),
+      weatherAnim(nullptr),
       isActive(false),
       state(LUMI_OFF),
       mode(LUMI_MODE_IDLE),
@@ -26,7 +28,9 @@ LuminaireController::LuminaireController()
       weatherDesc("Sunny"),
       lastWeatherUpdate(0),
       lastWindUpdate(0),
-      windAnimationOffset(0)
+      windAnimationOffset(0),
+      showingAnimation(false),
+      lastModeSwitch(0)
 {
 
     memset(RGBpayload, 0, LUMINAIRE_PAYLOAD_SIZE);
@@ -55,6 +59,12 @@ void LuminaireController::setMusicMode(MusicMode *music, AudioAnalyzer *audio)
     musicMode = music;
     audioAnalyzer = audio;
     Serial.println("[Luminaire] Music mode and audio analyzer configured");
+}
+
+void LuminaireController::setWeatherAnimation(WeatherAnimation *anim)
+{
+    weatherAnim = anim;
+    Serial.println("[Luminaire] Weather animation configured");
 }
 
 void LuminaireController::loop()
@@ -154,6 +164,31 @@ void LuminaireController::sendRGBToAll(int r, int g, int b)
 
     // 日志已禁用（Music模式下太频繁）
     // Serial.print("[Luminaire] ✓ Sent RGB(");
+}
+
+void LuminaireController::updateAllLEDs(byte *data, int size)
+{
+    if (!isActive)
+    {
+        return;
+    }
+
+    if (!mqtt || !mqtt->isConnected())
+    {
+        return;
+    }
+
+    if (size != LUMINAIRE_PAYLOAD_SIZE)
+    {
+        Serial.println("[Luminaire] ✗ Invalid data size");
+        return;
+    }
+
+    // 复制数据到payload
+    memcpy(RGBpayload, data, size);
+
+    // 一次性发送
+    mqtt->publish(mqttTopic.c_str(), RGBpayload, LUMINAIRE_PAYLOAD_SIZE, false);
 }
 
 void LuminaireController::clear()
@@ -666,6 +701,12 @@ void LuminaireController::updateWeatherData(const String &weatherJson)
     Serial.print(" (");
     Serial.print(weatherCode);
     Serial.println(")");
+    
+    // 同时更新天气动画类的数据
+    if (weatherAnim != nullptr)
+    {
+        weatherAnim->updateWeatherData(weatherCode, cloudCover, precipitation, visibility);
+    }
 }
 
 // ========================================
@@ -934,6 +975,24 @@ void LuminaireController::updateWeatherVisualization()
 {
     unsigned long now = millis();
 
+    // 检查是否需要切换显示模式（静态数据 ↔ 动画效果）
+    if (now - lastModeSwitch >= DISPLAY_DURATION)
+    {
+        showingAnimation = !showingAnimation;
+        lastModeSwitch = now;
+        
+        Serial.print("[Weather Viz] Switching to ");
+        Serial.println(showingAnimation ? "ANIMATION" : "STATIC DATA");
+    }
+
+    // 如果显示动画
+    if (showingAnimation && weatherAnim != nullptr)
+    {
+        weatherAnim->update();
+        return; // 动画会直接通过 sendRGBToPixel 发送数据
+    }
+
+    // 否则显示静态天气数据可视化
     // 限制更新频率
     if (now - lastWeatherUpdate < 50)
     {

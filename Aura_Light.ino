@@ -7,6 +7,7 @@
 #include "button_manager.h"
 #include "music_mode.h"
 #include "audio_analyzer.h"
+#include "weather_animation.h"
 
 #define NUM_PIXELS 8
 #define SYSTEM_VERSION "2.2.0"
@@ -25,6 +26,7 @@ WeatherManager weatherManager;
 ButtonManager buttonManager;
 MusicMode musicMode;
 AudioAnalyzer audioAnalyzer;
+WeatherAnimation weatherAnimation;
 String systemCity = "London";
 ControllerMode currentController = MODE_LOCAL;
 
@@ -357,6 +359,12 @@ void setup()
   lightControl.setMusicMode(&musicMode, &audioAnalyzer);
   luminaireControl.setMusicMode(&musicMode, &audioAnalyzer);
   updateBootProgress("Audio initialized");
+  
+  // 初始化并配置天气动画
+  Serial.println("[System] Initializing weather animation...");
+  weatherAnimation.begin(&luminaireControl);
+  luminaireControl.setWeatherAnimation(&weatherAnimation);
+  Serial.println("[System] Weather animation configured");
 
   if (mqtt.isConnected())
   {

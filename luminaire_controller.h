@@ -7,6 +7,7 @@
 // 前向声明
 class MusicMode;
 class AudioAnalyzer;
+class WeatherAnimation;
 
 #define LUMINAIRE_NUM_LEDS 72
 #define LUMINAIRE_PAYLOAD_SIZE (LUMINAIRE_NUM_LEDS * 3)
@@ -31,6 +32,7 @@ private:
     MQTTManager *mqtt;
     MusicMode *musicMode;         // Music 模式引用
     AudioAnalyzer *audioAnalyzer; // 音频分析器引用
+    WeatherAnimation *weatherAnim; // 天气动画引用
 
     String lightId;
     String mqttTopic;
@@ -62,6 +64,11 @@ private:
     unsigned long lastWeatherUpdate;
     unsigned long lastWindUpdate;
     int windAnimationOffset; // 风速动画偏移
+    
+    // 天气动画切换控制
+    bool showingAnimation;           // 当前是否显示动画
+    unsigned long lastModeSwitch;    // 上次模式切换时间
+    static const unsigned long DISPLAY_DURATION = 5000; // 每个模式显示5秒
 
     void applyModeColor();
     void updateMusicSpectrum();        // 新增：更新 Music 频谱显示
@@ -91,6 +98,9 @@ public:
 
     // 设置 Music 模式和音频分析器
     void setMusicMode(MusicMode *music, AudioAnalyzer *audio);
+    
+    // 设置天气动画
+    void setWeatherAnimation(WeatherAnimation *anim);
 
     // 主循环（用于 Music 模式更新）
     void loop();
@@ -100,6 +110,9 @@ public:
     void sendRGBToPixel(int r, int g, int b, int pixel);
 
     void sendRGBToAll(int r, int g, int b);
+    
+    // 批量更新所有LED（用于动画）
+    void updateAllLEDs(byte *data, int size);
 
     void clear();
 
