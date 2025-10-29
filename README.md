@@ -1,27 +1,26 @@
 # Arua Light
 **CASA0014, UCL 2025**
-[device photo](./Resource/device.jpg)
+![device photo](./Resource/device.jpg)
 
-## 1. Overview
-This project is an MQTT-connected IoT light with four modes (Timer, Weather, Idle, Music) and integrated LED visualisations.
-
-- Timer (WIP): Accepts timer commands via MQTT. The LEDs gradually dim as the timer counts down, then flash when time is up until the button is pressed to stop.
-- Weather: Determines the current city by IP and fetches weather data from wttr.in, then visualises the weather on the LEDs. It first shows a 5-second weather summary graphic, then runs an animated weather state visualization. 通过IP获取当前城市，然后通过wttr.in获取天气信息，会将当前的天气信息通过LED进行表示，会先显示5秒天气信息图，后显示当前天气状态动画。
-    - Weather summary graphic:
-        1. Humidity: shown in blue; higher humidity = brighter blue.
-        2. Wind: white moving dots that cycle; higher wind speed = faster movement and up to 3 dots for strong wind.
-        3. Visibility: white intensity represents visibility from 5 km to 20 km (below 5 km = off, above 20 km = full brightness).KM到20KM，能见度越大白色越亮，能见度小于5KM时白色熄灭，能见度大于20KM时白色全亮
-        4. Temperature: color-coded by temperature range前温度
-             - < 0 °C: white
-             - 0–10 °C: blue
-             - 10–20 °C: green
-             - 20–30 °C: yellow色
-             - > 30 °C: red
-        5. Feels-like temperature: shown with aqua if lower than actual temperature, orange if higher.体感温度低于实际温度时使用aqua，体感温度高于实际温度时使用橙色。
-        6. Cloud cover: shown in brown; more clouds = brighter brown.
-    - Weather state animations: animations for sunny, cloudy, rainy, snowy, thunderstorm, and foggy conditions.雾天的动画效果
-- Idle: Displays a configurable breathing (fade) LED effect; color is adjustable.
-- Music: Uses the Max9814 microphone to capture ambient sound and ArduinoFFT to analyse it. The NeoPixel strip responds to amplitude with varying colours and height, while the 72-LED array displays a real-time frequency spectrum.
+## 1. What it does
+This project is an MQTT-based IoT device with four modes—Timer, Weather, Idle, and Music—and built-in LED visualizations.
+- Timer (WIP): Receives timer commands over MQTT. LEDs gradually turn off as time passes; when the timer ends, they flash until the button is pressed.
+- Weather: Detects the current city via IP and fetches weather data from wttr.in. It first shows a 5-second “weather info chart,” then an animation of the current condition.
+    - Weather info chart:
+        1. Humidity: blue; higher humidity = brighter blue.
+        2. Wind speed: white moving dot(s); faster wind = faster motion; up to 3 dots for high wind.
+        3. Visibility: white brightness scaled from 5 km to 20 km; off below 5 km; full on above 20 km.
+        4. Temperature color:
+             - < 0°C: white
+             - 0–10°C: blue
+             - 10–20°C: green
+             - 20–30°C: yellow
+             - > 30°C: red
+        5. Feels-like temperature: aqua if lower than actual; orange if higher than actual.
+        6. Cloud cover: brown; higher cloud cover = brighter brown.
+    - Condition animation: animations for clear, cloudy, rain, snow, thunderstorm, and fog.
+- Idle: Breathing light effect with configurable color.
+- Music: Captures ambient audio via a Max9814 microphone and analyzes it with ArduinoFFT. The on-device NeoPixels map sound intensity to color and height, and the 72-LED array renders a spectrum.
 
 ## 2. Hardware
 1.  Arduino MKR WiFi 1010
@@ -194,4 +193,4 @@ Assuming `MQTT_USER` is set to `ucfninn`, the topics would be:
 
 ## 7. Dashboard(WIP)
 [Dashboard Link](./Dashboard/index.html)
-[Dashboard Screenshot](./Resource/dashboard.png)
+![Dashboard Screenshot](./Resource/dashboard.png)
