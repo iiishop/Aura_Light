@@ -87,19 +87,20 @@ This project is an MQTT-based IoT device with four modes—Timer, Weather, Idle,
     - Long press (>=2s): To toggle the light on and off
     - Double press (two presses within 0.6s): To change the local and lumi mode
 11. If you want to use some modern method, you can use the Dashboard in this project to control the device, by a http server running on your computer.
-        - **Important:** Sensitive MQTT connection information (broker, port, username, password) is now stored in `dashboard/js/config.secret.js`. You must create and edit this file with your own server details. Example:
-        ```js
-        // dashboard/js/config.secret.js
-        export const MQTT_SECRET = {
-                broker: 'YOUR_MQTT_BROKER',
-                port: 1884,
-                username: 'YOUR_USERNAME',
-                password: 'YOUR_PASSWORD'
-        };
-        ```
-        - Do **not** commit this file to public repositories.
-        - The Dashboard will automatically use these credentials.
-        - Then open the `index.html` file in the `Dashboard` folder in your web browser.
+
+    - **Important:** Sensitive MQTT connection information (broker, port, username,password) is now stored in `dashboard/js/config.secret.js`. You must create and editthis file with your own server details. Example:
+    ```js
+    // dashboard/js/config.secret.js
+    export const MQTT_SECRET = {
+            broker: 'YOUR_MQTT_BROKER',
+            port: 1884,
+            username: 'YOUR_USERNAME',
+            password: 'YOUR_PASSWORD'
+    };
+    ```
+    - Do **not** commit this file to public repositories.
+    - The Dashboard will automatically use these credentials.
+    - Then open the `index.html` file in the `Dashboard` folder in your web browser.
 
 ## 6. MQTT Topics
 
