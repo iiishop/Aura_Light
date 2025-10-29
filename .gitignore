@@ -51,3 +51,4 @@ yarn.lock
 
 # MQTT test outputs
 mqtt_test_output.txt
+dashboard/js/config.secret.js
