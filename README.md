@@ -15,7 +15,7 @@ This project is an MQTT-based IoT device with four modes—Timer, Weather, Idle,
              - 0–10°C: blue
              - 10–20°C: green
              - 20–30°C: yellow
-             - > 30°C: red
+             - \> 30°C: red
         5. Feels-like temperature: aqua if lower than actual; orange if higher than actual.
         6. Cloud cover: brown; higher cloud cover = brighter brown.
     - Condition animation: animations for clear, cloudy, rain, snow, thunderstorm, and fog.
@@ -41,7 +41,7 @@ This project is an MQTT-based IoT device with four modes—Timer, Weather, Idle,
 4.  arduinoFFT by Enrique Condes
 
 ## 5. How to run
-1.  git clone https://github.com/iiishop/Aura_Light
+1.  ```git clone https://github.com/iiishop/Aura_Light```
 2.  Install Arduino IDE and the libraries mentioned above.
 3.  Open the `Arua_Light.ino` file in Arduino IDE.
 4.  Create a `arduino_secrets.h` file in the same directory as `Arua_Light.ino` with the following content:
@@ -192,5 +192,5 @@ Assuming `MQTT_USER` is set to `ucfninn`, the topics would be:
 4. **Bidirectional Communication**: Some topics (like `status`, `mode`) support both subscribe and publish for bidirectional synchronization
 
 ## 7. Dashboard(WIP)
-[Dashboard Link](./Dashboard/index.html)
+[Dashboard Link](./dashboard/index.html)
 ![Dashboard Screenshot](./Resource/dashboard.png)
