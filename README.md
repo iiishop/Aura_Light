@@ -1,6 +1,8 @@
 # Arua Light
 **CASA0014, UCL 2025**
-![device photo](./Resource/device.jpg)
+<p align="center">
+    <img src="./Resource/device.jpg" alt="device photo" width="30%">
+</p>
 
 ## 1. What it does
 This project is an MQTT-based IoT device with four modes—Timer, Weather, Idle, and Music—and built-in LED visualizations.
